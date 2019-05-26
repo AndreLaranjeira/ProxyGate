@@ -4,26 +4,62 @@
 #ifndef SERVER_H
 #define SERVER_H
 
-// Includes:
+// Library includes:
+#include <netinet/in.h>
+#include <stdexcept>
+#include <sys/socket.h>
+#include <unistd.h>
+
+// Qt includes:
 #include <QObject>
+
+// User includes:
+#include "include/message_logger.h"
 
 // Namespace:
 using namespace std;
 
+// Macros:
+#define DEFAULT_PORT 8228
+#define SERVER_BACKLOG 3
+
 // Class headers:
 class Server : public QObject {
-
   Q_OBJECT
 
-  // Methods:
   public:
-  Server();
-  ~Server();
+    // Class methods:
+    Server(in_port_t);
+    ~Server();
+
+    // Methods:
+    bool isRunning();
+    int init();
 
   public slots:
+    int run();
+    int stop();
 
   signals:
+    void error(QString err);
+    void finished();
+
+  private:
+    // Variables:
+    bool running = false;
+    char request[8192];
+    int client_fd;
+    int server_fd;
+    struct sockaddr_in address;
+
+    // Classes:
+    MessageLogger logger;
 
 };
 
 #endif // SERVER_H
+
+/* Todo list:
+ *  - Refactor implementation to adequately use signals.
+ *
+ */
