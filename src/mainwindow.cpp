@@ -22,32 +22,30 @@ MainWindow::~MainWindow() {
   delete ui;
 
   // Clean up the server thread:
-  if(server_t.isRunning()) {
-    server->stop();     // Stop the server.
-    server_t.quit();    // Quit the thread.
-    server_t.wait();    // Wait for the thread to finish.
-  }
-
-  delete server;
+  if(server_t->isRunning())
+    server->stop();     // Stop the server. Signals and slots handle the rest!
 
   // Success message:
-  logger.success("Application finished!");
+  logger.success("Exited application!");
 
 }
 
 // Public methods:
 int MainWindow::start_server() {
 
-  server = new Server(server_port());     // Create the server.
+  server = new Server(server_port());
+  server_t = new QThread;
 
   if(server->init() == 0) {
-    server->moveToThread(&server_t);
+    server->moveToThread(server_t);
     config_server_thread();
-    server_t.start();
+    server_t->start();
   }
 
   else {
     logger.error("Failed to initialize server!");
+    server->deleteLater();
+    server_t->deleteLater();
     return -1;
   }
 
@@ -89,10 +87,20 @@ in_port_t MainWindow::server_port() {
 void MainWindow::config_server_thread() {
 
   // Configure server thread signals and slots:
+
+  // If there is an error, signal the Main Window:
   //connect(server, SIGNAL (error(QString)), this, SLOT (errorString(QString)));
-  connect(&server_t, SIGNAL (started()), server, SLOT (run()));
-  //connect(server, SIGNAL (finished()), &server_t, SLOT (quit()));
-  //connect(server, SIGNAL (finished()), server, SLOT (deleteLater()));
-  connect(&server_t, SIGNAL (finished()), &server_t, SLOT (deleteLater()));
+
+  // The server thread should start the server:
+  connect(server_t, SIGNAL (started()), server, SLOT (run()));
+
+  // If the server run finishes, the server thread should quit:
+  connect(server, SIGNAL (finished()), server_t, SLOT (quit()));
+
+  // When the server finishes, schedule the server for deletion:
+  connect(server, SIGNAL (finished()), server, SLOT (deleteLater()));
+
+  // When the server thread finishes, schedule the server thread for deletion:
+  connect(server_t, SIGNAL (finished()), server_t, SLOT (deleteLater()));
 
 }

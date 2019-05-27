@@ -36,8 +36,8 @@ class Server : public QObject {
     int init();
 
   public slots:
-    int run();
-    int stop();
+    void run();
+    void stop();
 
   signals:
     void error(QString err);
@@ -45,7 +45,7 @@ class Server : public QObject {
 
   private:
     // Variables:
-    bool stop_request = false;
+    bool running = false;
     char request[8192];
     int client_fd;
     int server_fd;
@@ -57,8 +57,3 @@ class Server : public QObject {
 };
 
 #endif // SERVER_H
-
-/* Todo list:
- *  - Refactor implementation to adequately use signals.
- *
- */

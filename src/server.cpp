@@ -55,11 +55,14 @@ int Server::init() {
 
 }
 
-int Server::run() {
+void Server::run() {
 
+  bool runtime_error = false;
   int addrlen = sizeof(address);
 
-  while(!stop_request) {
+  running = true;
+
+  while(running && !runtime_error) {
 
     // Accept an incoming client connection (blocking function call):
     client_fd = accept(server_fd,
@@ -73,19 +76,24 @@ int Server::run() {
     }
 
     // If we didn't ask the server to stop, then something went wrong!
-    else if(!stop_request) {
+    else if(running) {
       logger.error("Failed to accept an incoming connection!");
-      return -1;
+      runtime_error = true;
     }
 
   }
 
-  logger.success("Server successfully shutdown!");
-  return 0;
+  if(!runtime_error)
+    logger.success("Server successfully shutdown!");
+
+  else
+    logger.info("Server shutdown due to runtime error!");
+
+  emit finished();
 
 }
 
-int Server::stop() {
+void Server::stop() {
 
   // Shutdown the server connection.
   // Argument options:
@@ -98,8 +106,6 @@ int Server::stop() {
   close(server_fd);
 
   // Set a control variable
-  stop_request = true;
-
-  return 0;
+  running = false;
 
 }

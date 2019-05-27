@@ -34,7 +34,7 @@ class MainWindow : public QMainWindow {
     // Classes:
     Ui::MainWindow *ui;
     MessageLogger logger;
-    QThread server_t;
+    QThread *server_t;
     Server *server;
 
     // Methods:
