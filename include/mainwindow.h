@@ -37,6 +37,10 @@ class MainWindow : public QMainWindow {
     QThread server_t;
     Server *server;
 
+    // Methods:
+    in_port_t server_port();
+    void config_server_thread();
+
 };
 
 #endif // MAINWINDOW_H

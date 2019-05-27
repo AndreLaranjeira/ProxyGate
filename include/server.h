@@ -33,7 +33,6 @@ class Server : public QObject {
     ~Server();
 
     // Methods:
-    bool isRunning();
     int init();
 
   public slots:
@@ -46,7 +45,7 @@ class Server : public QObject {
 
   private:
     // Variables:
-    bool running = false;
+    bool stop_request = false;
     char request[8192];
     int client_fd;
     int server_fd;

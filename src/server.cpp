@@ -17,10 +17,6 @@ Server::~Server() {
 
 }
 
-bool Server::isRunning() {
-  return running;
-}
-
 int Server::init() {
 
   // Variable declaration:
@@ -46,7 +42,13 @@ int Server::init() {
     return -1;
   }
 
-  // And there we go! This should make the server ready to begin listening for
+  // Enable the server to listen to requests with a certain backlog:
+  if(listen(server_fd, SERVER_BACKLOG) < 0) {
+    logger.error("Failed configure socket to accept connections!");
+    return -1;
+  }
+
+  // And there we go! This should make the server ready to begin accepting
   // requests. Just call Server::run() to begin.
   logger.success("Server initialized!");
   return 0;
@@ -57,28 +59,21 @@ int Server::run() {
 
   int addrlen = sizeof(address);
 
-  // Start listening for requests:
-  if(listen(server_fd, SERVER_BACKLOG) < 0) {
-    logger.error("Failed configure socket to accept connections!");
-    return -1;
-  }
-
-  running = true;   // This will be useful later.
-
-  while(running) {
+  while(!stop_request) {
 
     // Accept an incoming client connection (blocking function call):
-    if((client_fd = accept(server_fd,
-                            reinterpret_cast<struct sockaddr*> (&address),
-                            reinterpret_cast<socklen_t*> (&addrlen))) == 0) {
+    client_fd = accept(server_fd,
+                       reinterpret_cast<struct sockaddr*> (&address),
+                       reinterpret_cast<socklen_t*> (&addrlen));
+
+    // Treating the client connection:
+    if(client_fd > 0) {
       read(client_fd, request, 8192);
       logger.info("Received some message!");
     }
 
-    else if(!running)
-      break;
-
-    else {
+    // If we didn't ask the server to stop, then something went wrong!
+    else if(!stop_request) {
       logger.error("Failed to accept an incoming connection!");
       return -1;
     }
@@ -92,20 +87,18 @@ int Server::run() {
 
 int Server::stop() {
 
-  // Shutdown the server connection. Option 2 stops sending and receiving info.
-  // If option 2 is a bit too harsh, try options 0 (stop receiving only) or
-  // option 1 (stop transmitting and receiving ACKs only).
-  if(shutdown(server_fd, 2) != 0) {
-    logger.error("Failed to close server connection!");
-    return -1;
-  }
+  // Shutdown the server connection.
+  // Argument options:
+  //    0: Stop receiving data.
+  //    1: Stop transmitting data and receiving ACKs.
+  //    2: Stop receiving and transmitting data.
+  shutdown(server_fd, 0);
 
-  if(close(server_fd) != 0) {
-    logger.error("Failed to close server socket!");
-    return -1;
-  }
+  // Close the file descriptor:
+  close(server_fd);
 
-  running = false;
+  // Set a control variable
+  stop_request = true;
 
   return 0;
 

@@ -4,25 +4,15 @@
 #include "include/mainwindow.h"
 #include "ui_mainwindow.h"
 
+// Class methods:
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),
                                           ui(new Ui::MainWindow),
                                           logger("Main") {
   // UI configuration:
   ui->setupUi(this);
 
-  // Server configuration:
-  if(this->start_server() == 0) {
-    server->moveToThread(&server_t);
-    //connect(server, SIGNAL (error(QString)), this, SLOT (errorString(QString)));
-    connect(&server_t, SIGNAL (started()), server, SLOT (run()));
-    //connect(server, SIGNAL (finished()), &server_t, SLOT (quit()));
-    //connect(server, SIGNAL (finished()), server, SLOT (deleteLater()));
-    connect(&server_t, SIGNAL (finished()), &server_t, SLOT (deleteLater()));
-    server_t.start();
-  }
-
-  else
-   logger.error("Failed to initialize server!");
+  // Functionality configuration:
+  start_server();
 
 }
 
@@ -45,9 +35,29 @@ MainWindow::~MainWindow() {
 
 }
 
+// Public methods:
 int MainWindow::start_server() {
 
-  // Variable declarations:
+  server = new Server(server_port());     // Create the server.
+
+  if(server->init() == 0) {
+    server->moveToThread(&server_t);
+    config_server_thread();
+    server_t.start();
+  }
+
+  else {
+    logger.error("Failed to initialize server!");
+    return -1;
+  }
+
+  return 0;
+
+}
+
+// Private methods:
+in_port_t MainWindow::server_port() {
+
   const QStringList args = QCoreApplication::arguments();
   in_port_t port_num;
   unsigned int arg_port_num;
@@ -56,9 +66,11 @@ int MainWindow::start_server() {
   if(args.count() == 2) {
     arg_port_num = unsigned (args[1].toInt());
 
+    // Valid port number:
     if(arg_port_num <= 65535)
       port_num = in_port_t (arg_port_num);
 
+    // Invalid port number:
     else {
       port_num = DEFAULT_PORT;
       logger.warning("Invalid port number argument! Using default port instead.");
@@ -66,15 +78,21 @@ int MainWindow::start_server() {
 
   }
 
+  // Else, just use the default:
   else
     port_num = DEFAULT_PORT;
 
-  // Server configuration:
-  server = new Server(port_num);
+  return port_num;
 
-  if(server->init() != 0)
-    return -1;
+}
 
-  return 0;
+void MainWindow::config_server_thread() {
+
+  // Configure server thread signals and slots:
+  //connect(server, SIGNAL (error(QString)), this, SLOT (errorString(QString)));
+  connect(&server_t, SIGNAL (started()), server, SLOT (run()));
+  //connect(server, SIGNAL (finished()), &server_t, SLOT (quit()));
+  //connect(server, SIGNAL (finished()), server, SLOT (deleteLater()));
+  connect(&server_t, SIGNAL (finished()), &server_t, SLOT (deleteLater()));
 
 }
