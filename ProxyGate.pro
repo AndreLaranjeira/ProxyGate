@@ -24,13 +24,16 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 CONFIG += c++11
 
+# File names:
 SOURCES += \
         src/main.cpp \
         src/mainwindow.cpp \
+        src/message_logger.cpp \
         src/server.cpp
 
 HEADERS += \
         include/mainwindow.h \
+        include/message_logger.h \
         include/server.h
 
 FORMS += \
