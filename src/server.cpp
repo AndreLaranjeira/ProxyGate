@@ -11,6 +11,9 @@ Server::Server(in_port_t port_number) : logger("Server") {
   address.sin_addr.s_addr = INADDR_ANY;   // Accept connections from all IPs.
   address.sin_port = htons(port_number);  // Port number.
 
+  // Info message:
+  logger.info("Server configured in port " + to_string(port_number) + ".");
+
 }
 
 Server::~Server() {
@@ -84,7 +87,7 @@ void Server::run() {
   }
 
   if(!runtime_error)
-    logger.success("Server successfully shutdown!");
+    logger.success("Server shutdown!");
 
   else
     logger.info("Server shutdown due to runtime error!");

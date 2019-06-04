@@ -71,7 +71,7 @@ in_port_t MainWindow::server_port() {
     // Invalid port number:
     else {
       port_num = DEFAULT_PORT;
-      logger.warning("Invalid port number argument! Using default port instead.");
+      logger.warning("Invalid port number argument! Using default port " + to_string(DEFAULT_PORT) + " instead.");
     }
 
   }
