@@ -171,7 +171,7 @@ QString HTTPParser::toQString(){
     while(i.hasNext()){
         i.next();
         for(QString value : i.value()){
-            ret += i.key() + ":" + value + "\r\n";
+            ret += i.key() + ": " + value + "\r\n";
         }
     }
 

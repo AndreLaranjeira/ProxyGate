@@ -76,7 +76,7 @@ void Server::run() {
       HTTPParser parsedHTTP = HTTPParser();
       parsedHTTP.parseRequest(QString(request));
       parsedHTTP.prettyPrinter();
-
+      //logger.info(parsedHTTP.toQString().toStdString());
     }
 
     // If we didn't ask the server to stop, then something went wrong!
