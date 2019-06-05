@@ -15,6 +15,7 @@
 
 // User includes:
 #include "include/message_logger.h"
+#include "include/httpparser.h"
 
 // Namespace:
 using namespace std;
