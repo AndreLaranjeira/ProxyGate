@@ -63,7 +63,6 @@ void Server::run() {
   running = true;
 
   while(running && !runtime_error) {
-
     // Accept an incoming client connection (blocking function call):
     client_fd = accept(server_fd,
                        reinterpret_cast<struct sockaddr*> (&address),
@@ -71,8 +70,13 @@ void Server::run() {
 
     // Treating the client connection:
     if(client_fd > 0) {
-      read(client_fd, request, 8192);
-      logger.info("Received some message!");
+      ssize_t a = read(client_fd, request, 8192);
+      request[a] = '\0';
+
+      HTTPParser parsedHTTP = HTTPParser();
+      parsedHTTP.parseRequest(QString(request));
+      parsedHTTP.prettyPrinter();
+
     }
 
     // If we didn't ask the server to stop, then something went wrong!
