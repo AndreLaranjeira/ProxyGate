@@ -1,4 +1,5 @@
-# User configuration file:
+# User-specific files:
+Makefile
 ProxyGate.pro.user
 
 # Build files and folders:
