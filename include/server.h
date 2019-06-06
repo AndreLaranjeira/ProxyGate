@@ -17,6 +17,7 @@
 #include <QObject>
 
 // User includes:
+#include "include/httpparser.h"
 #include "include/message_logger.h"
 #include "include/socket.h"
 

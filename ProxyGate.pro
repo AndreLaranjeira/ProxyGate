@@ -26,6 +26,7 @@ CONFIG += c++11
 
 # File names:
 SOURCES += \
+        src/httpparser.cpp \
         src/main.cpp \
         src/mainwindow.cpp \
         src/message_logger.cpp \
@@ -33,6 +34,7 @@ SOURCES += \
         src/socket.cpp
 
 HEADERS += \
+        include/httpparser.h \
         include/mainwindow.h \
         include/message_logger.h \
         include/server.h \
