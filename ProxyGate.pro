@@ -29,12 +29,14 @@ SOURCES += \
         src/main.cpp \
         src/mainwindow.cpp \
         src/message_logger.cpp \
-        src/server.cpp
+        src/server.cpp \
+        src/socket.cpp
 
 HEADERS += \
         include/mainwindow.h \
         include/message_logger.h \
-        include/server.h
+        include/server.h \
+        include/socket.h
 
 FORMS += \
         form/mainwindow.ui

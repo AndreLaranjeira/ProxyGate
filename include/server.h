@@ -5,8 +5,11 @@
 #define SERVER_H
 
 // Library includes:
+#include <arpa/inet.h>
+#include <netdb.h>
 #include <netinet/in.h>
 #include <stdexcept>
+#include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -15,6 +18,7 @@
 
 // User includes:
 #include "include/message_logger.h"
+#include "include/socket.h"
 
 // Namespace:
 using namespace std;
@@ -46,10 +50,14 @@ class Server : public QObject {
   private:
     // Variables:
     bool running = false;
-    char request[8192];
+    char client_request[8192];
+    char website_request[8192];
     int client_fd;
     int server_fd;
-    struct sockaddr_in address;
+    int website_fd;
+    struct hostent *website_IP_data;
+    struct sockaddr_in client_address;
+    struct sockaddr_in website_address;
 
     // Classes:
     MessageLogger logger;
