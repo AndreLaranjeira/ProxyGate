@@ -119,6 +119,11 @@ QString HTTPParser::getMethod(){
     return this->method;
 }
 
+// Getter for host
+QString HTTPParser::getHost(){
+    return this->getHeaders()["Host"][0];
+}
+
 // Getter for url
 QString HTTPParser::getURL(){
     return this->url;

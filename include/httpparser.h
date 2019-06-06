@@ -44,6 +44,7 @@ class HTTPParser {
 
         // Getters
         QString getMethod();
+        QString getHost();
         QString getURL();
         QString getHTTPVersion();
         QString getData();
