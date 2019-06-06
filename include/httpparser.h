@@ -11,9 +11,14 @@
 // Enum that describes allowed states for Parser
 typedef enum {
     COMMANDLINE,
-    HEADERLINE,
-    DATA
+    HEADERLINE
 } ParserState;
+
+typedef struct HeaderBodyPair {
+    QString header;
+    char body[8192];
+    ssize_t body_size;
+} HeaderBodyPair;
 
 // Typedef to abstract Headers hash
 typedef QHash<QString,QList<QString>> Headers;
@@ -25,7 +30,7 @@ class HTTPParser {
         QString method;
         QString url;
         QString version;
-        QString data;
+        HeaderBodyPair splitted;
         Headers headers;
 
         // Parser state
@@ -35,9 +40,10 @@ class HTTPParser {
         MessageLogger logger;
 
         // Private aux methods for parsing
+        HeaderBodyPair splitRequest(char *, ssize_t);
         bool parseCommandLine(QString);
         bool parseHeaderLine(QString);
-        bool parse(QString);
+        bool parse(char *, ssize_t);
     public:
         // Constructor
         HTTPParser();
@@ -46,11 +52,12 @@ class HTTPParser {
         QString getMethod();
         QString getURL();
         QString getHTTPVersion();
-        QString getData();
+        char *getData();
+        ssize_t getDataSize();
         Headers getHeaders();
 
         // Parser
-        bool parseRequest(QString);
+        bool parseRequest(char *, ssize_t);
 
         // PrettyPrinter method
         void prettyPrinter();

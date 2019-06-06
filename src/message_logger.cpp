@@ -2,6 +2,8 @@
 
 // Includes:
 #include "include/message_logger.h"
+#include "include/mainwindow.h"
+#include <QTextEdit>
 
 // Class methods:
 MessageLogger::MessageLogger(string p_context) {

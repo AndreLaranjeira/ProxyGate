@@ -50,6 +50,9 @@ int Server::init() {
 
   // And there we go! This should make the server ready to begin accepting
   // requests. Just call Server::run() to begin.
+
+  emit errorMessage("Server initialized!");
+
   logger.success("Server initialized!");
   return 0;
 
@@ -74,7 +77,7 @@ void Server::run() {
       request[a] = '\0';
 
       HTTPParser parsedHTTP = HTTPParser();
-      parsedHTTP.parseRequest(QString(request));
+      parsedHTTP.parseRequest(request, a);
       parsedHTTP.prettyPrinter();
       //logger.info(parsedHTTP.toQString().toStdString());
     }

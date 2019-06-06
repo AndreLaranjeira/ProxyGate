@@ -43,6 +43,7 @@ class Server : public QObject {
   signals:
     void error(QString err);
     void finished();
+    void errorMessage(QString);
 
   private:
     // Variables:

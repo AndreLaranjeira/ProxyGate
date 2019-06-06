@@ -8,6 +8,7 @@
 #include <QMainWindow>
 #include <QObject>
 #include <QThread>
+#include <QTextEdit>
 
 // User includes:
 #include "include/message_logger.h"
@@ -30,6 +31,12 @@ class MainWindow : public QMainWindow {
     // Methods:
     int start_server();
 
+    public slots:
+        void logMessage(QString message){
+            QTextEdit *t = this->findChild<QTextEdit*>("logTextEdit");
+            t->append(message);
+        }
+
   private:
     // Classes:
     Ui::MainWindow *ui;
@@ -40,6 +47,7 @@ class MainWindow : public QMainWindow {
     // Methods:
     in_port_t server_port();
     void config_server_thread();
+
 
 };
 
