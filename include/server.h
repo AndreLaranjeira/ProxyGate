@@ -28,6 +28,21 @@ using namespace std;
 #define DEFAULT_PORT 8228
 #define SERVER_BACKLOG 3
 
+// Type definitions:
+typedef enum {
+  CLIENT,
+  WEBSITE
+} ServerConnections;
+
+typedef enum {
+  AWAIT_CONNECTION,
+  READ_FROM_CLIENT,
+  SEND_TO_CLIENT,
+  READ_FROM_WEBSITE,
+  SEND_TO_WEBSITE,
+  AWAIT_GATE
+} ServerTask;
+
 // Class headers:
 class Server : public QObject {
   Q_OBJECT
@@ -41,27 +56,44 @@ class Server : public QObject {
     int init();
 
   public slots:
+    void open_gate();
     void run();
     void stop();
 
   signals:
+    void client_request(QString req);
     void error(QString err);
     void finished();
+    void website_request(QString req);
 
   private:
     // Variables:
-    bool running = false;
-    char client_request[8192];
-    char website_request[8192];
+    bool gate_closed;
+    bool running;
+    char client_buffer[8192];
+    char website_buffer[8192];
     int client_fd;
     int server_fd;
     int website_fd;
+    string last_host;
     struct hostent *website_IP_data;
-    struct sockaddr_in client_address;
-    struct sockaddr_in website_address;
+    struct sockaddr_in client_addr;
+    struct sockaddr_in website_addr;
 
-    // Classes:
+    // Classes and custom types:
+    HTTPParser http_parser = HTTPParser();
     MessageLogger logger;
+    ServerConnections last_read;
+    ServerTask next_task;
+
+    // Methods:
+    int await_connection();
+    int await_gate();
+    int execute_task(ServerTask);
+    int read_from_client();
+    int read_from_website();
+    int send_to_client();
+    int send_to_website();
 
 };
 

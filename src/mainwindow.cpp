@@ -91,6 +91,9 @@ void MainWindow::config_server_thread() {
   // If there is an error, signal the Main Window:
   //connect(server, SIGNAL (error(QString)), this, SLOT (errorString(QString)));
 
+  // Connect the gate_button signal to the server open_gate slot:
+  connect(ui->button_gate, SIGNAL (released()), server, SLOT (open_gate()));
+
   // The server thread should start the server:
   connect(server_t, SIGNAL (started()), server, SLOT (run()));
 

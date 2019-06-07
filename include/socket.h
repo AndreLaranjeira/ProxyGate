@@ -11,6 +11,6 @@
 // Function headers:
 int close_socket(int);
 int connect_socket (int, struct sockaddr*, socklen_t);
-int read_socket(int, void*, size_t);
+int read_socket(int, char*, size_t);
 
 #endif // SOCKET_H
