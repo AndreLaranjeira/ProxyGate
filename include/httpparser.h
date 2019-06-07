@@ -30,6 +30,8 @@ class HTTPParser {
         QString method;
         QString url;
         QString version;
+        QString code;
+        QString description;
         HeaderBodyPair splitted;
         Headers headers;
 
@@ -42,6 +44,7 @@ class HTTPParser {
         // Private aux methods for parsing
         HeaderBodyPair splitRequest(char *, ssize_t);
         bool parseCommandLine(QString);
+        bool parseAnswerLine(QString);
         bool parseHeaderLine(QString);
         bool parse(char *, ssize_t);
     public:
@@ -52,6 +55,8 @@ class HTTPParser {
         QString getMethod();
         QString getURL();
         QString getHTTPVersion();
+        QString getCode();
+        QString getDescription();
         char *getData();
         ssize_t getDataSize();
         Headers getHeaders();

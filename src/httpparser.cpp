@@ -42,7 +42,7 @@ bool HTTPParser::parse(char *request, ssize_t size){
             // CommandLine state is the first line to be read
             case COMMANDLINE:
                 // ParseCommandLine method modifies class attributes
-                if(!this->parseCommandLine(line)){
+                if(!this->parseCommandLine(line) && !this->parseAnswerLine(line)){
                    logger.error("Could not parse COMMAND LINE");
                    return false;
                 }
@@ -91,6 +91,31 @@ bool HTTPParser::parseCommandLine(QString line){
     return true;
 }
 
+// This method parsers first line of a HTTP request
+// It alters private members of class
+// Returns false if could not match with expected expression
+bool HTTPParser::parseAnswerLine(QString line){
+    int pos;
+
+    // Regular Expression for command line
+    // HTTP/1.1 403 Forbidden
+    QRegExp commandline("^(HTTP\\/(?:\\d.\\d)) (\\d{3}) (\\w)$");
+    QString code, description, version;
+
+    // Try to match
+    pos = commandline.indexIn(line);
+
+    // Should match exactly the first character
+    if(pos != 0) return false;
+
+    // Set private variables
+    this->version = commandline.cap(1);
+    this->code = commandline.cap(2);
+    this->description = commandline.cap(3);
+
+    return true;
+}
+
 // This method parsers a header line of a HTTP request
 // It alters private members of class
 // Returns false if could not match with expected expression
@@ -134,6 +159,16 @@ QString HTTPParser::getURL(){
 // Getter for version
 QString HTTPParser::getHTTPVersion(){
     return this->version;
+}
+
+// Getter for code
+QString HTTPParser::getCode(){
+    return this->code;
+}
+
+// Getter for description
+QString HTTPParser::getDescription(){
+    return this->description;
 }
 
 // Getter for data
