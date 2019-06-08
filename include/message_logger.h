@@ -34,6 +34,10 @@ class MessageLogger : public QObject {
   private:
     // Variables:
     string context;
+    bool connected = false;
+
+    // Methods:
+    void connectMainWindow();
 
 };
 

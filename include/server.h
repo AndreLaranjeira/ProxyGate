@@ -20,7 +20,6 @@
 #include "include/httpparser.h"
 #include "include/message_logger.h"
 #include "include/socket.h"
-#include "include/cycle.h"
 
 // Namespace:
 using namespace std;
@@ -63,7 +62,15 @@ class Server : public QObject {
     MessageLogger logger;
 
     // Methods:
+    int execute();
+    int await_connection();
+    int connect_to_website(QString);
+    int send_to_website(int, char *, ssize_t);
+    int send_to_client(int, char *, ssize_t);
+    int read_from_website(int, char *, size_t);
 
 };
 
 #endif // SERVER_H
+
+
