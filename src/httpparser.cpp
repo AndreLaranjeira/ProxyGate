@@ -8,6 +8,7 @@ HTTPParser::HTTPParser() : state(COMMANDLINE), logger("HTTPParser"){
 HeaderBodyPair HTTPParser::splitRequest(char *request, ssize_t size){
     HeaderBodyPair ret;
     ssize_t i;
+    char tmp;
     if(size < 4){
         ret.body_size = 0;
         return ret;
@@ -16,9 +17,11 @@ HeaderBodyPair HTTPParser::splitRequest(char *request, ssize_t size){
         if(request[i+1] == '\r' && request[i+2] == '\n' && request[i+3] == '\r' && request[i+4] == '\n')
             break;
     }
+    tmp = request[i+1];
     request[i+1] = '\0';
-    request[size] = '\0';
     ret.header = QString(request);
+    request[i+1] = tmp;
+
     ret.body_size = size-i-5;
     memcpy(ret.body, request+i+5, (size_t)(size-i-5));
     return ret;
