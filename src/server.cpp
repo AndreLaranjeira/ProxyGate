@@ -12,10 +12,10 @@ Server::Server(in_port_t port_number) : logger("Server") {
   client_addr.sin_port = htons(port_number);  // Port number for proxy.
 
   // Configure the proxy website server addresses:
-  memset(&website_addr, 0, sizeof(website_addr));
+  //memset(&website_addr, 0, sizeof(website_addr));
 
-  website_addr.sin_family = AF_INET;  // IPv4.
-  website_addr.sin_port = htons(80);  // Port number for website (HTTP).
+  //website_addr.sin_family = AF_INET;  // IPv4.
+  //website_addr.sin_port = htons(80);  // Port number for website (HTTP).
 
   // Info message:
   logger.info("Server configured in port " + to_string(port_number) + ".");
@@ -100,13 +100,16 @@ int Server::execute_task(ServerTask task) {
 int Server::read_from_client() {
 
   // Client sent data:
-  if(read_socket(client_fd, client_buffer, 8192) == 0) {
+  if(read_socket(client_fd, client_buffer, BUFFERSIZE) == 0) {
     // Read from client_buffer to HTTPParser here.
     // If you want to create a method in the HTTPParser using read_socket to
     // read directly from the socket, that is also a good idea.
     //emit client_request(client_buffer); //(Notify MainWindow).
     cout << client_buffer << endl;
-    http_parser.parseRequest(QString(client_buffer));   // To determine host.
+
+    http_parser = new HTTPParser();
+    http_parser->parseRequest(QString(client_buffer));   // To determine host.
+
     last_read = CLIENT;
     next_task = AWAIT_GATE;
   }
@@ -121,7 +124,7 @@ int Server::read_from_client() {
 
 int Server::read_from_website() {
 
-  if(read_socket(website_fd, website_buffer, 8192) == 0) {
+  if(read_socket(website_fd, website_buffer, BUFFERSIZE) == 0) {
     // Read from website_buffer to HTTPParser here.
     // If you want to create a method in the HTTPParser using read_socket to
     // read directly from the socket, that is also a good idea.
@@ -141,23 +144,36 @@ int Server::read_from_website() {
 }
 
 int Server::send_to_client() {
-  send(client_fd, website_buffer, 8192, 0);
+  send(client_fd, website_buffer, BUFFERSIZE, 0);
   next_task = READ_FROM_CLIENT;
   return 0;
 }
 
 int Server::send_to_website() {
+  struct sockaddr_in website_addr;
+
+  if(http_parser == nullptr){
+      next_task = READ_FROM_CLIENT;
+      return -1;
+  }
 
   // If it is the same host, send the package and don't ask questions.
-  if(last_host == http_parser.getHost().toStdString()) {
-    send(website_fd, client_buffer, 8192, 0);
-    logger.info("Sent some message!");
-    next_task = READ_FROM_WEBSITE;
-    return 0;
+  //if(last_host == http_parser->getHost().toStdString()) {
+    //send(website_fd, client_buffer, BUFFERSIZE, 0);
+    //logger.info("Sent some message!");
+    //next_task = READ_FROM_WEBSITE;
+    //return 0;
+  //}
+
+  close_socket(website_fd);
+  website_fd = 0;
+  if((website_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0){
+      logger.error("Failed to create server socket!");
+      return -1;
   }
 
   // Find the IP address for a given host:
-  website_IP_data = gethostbyname(http_parser.getHost().toStdString().c_str());
+  website_IP_data = gethostbyname(http_parser->getHost().toStdString().c_str());
 
   if(website_IP_data == nullptr) {
     logger.error("Failed to find an IP address for the server website");
@@ -166,6 +182,12 @@ int Server::send_to_website() {
     // next_state = SEND_TO_CLIENT;
     return -1;
   }
+
+  // Configure the proxy website server addresses:
+  memset(&website_addr, 0, sizeof(website_addr));
+  website_addr.sin_family = AF_INET;  // IPv4.
+  website_addr.sin_port = htons(80);  // Port number for website (HTTP).
+
 
   // Copy the IP address obtained:
   memcpy(&website_addr.sin_addr.s_addr, website_IP_data->h_addr,
@@ -182,8 +204,8 @@ int Server::send_to_website() {
 
   else {
     // Send the request to the website:
-    last_host = http_parser.getHost().toStdString();
-    send(website_fd, client_buffer, 8192, 0);
+    last_host = http_parser->getHost().toStdString();
+    send(website_fd, client_buffer, BUFFERSIZE, 0);
     logger.info("Sent some message!");
     next_task = READ_FROM_WEBSITE;
     return 0;
@@ -247,7 +269,7 @@ void Server::run() {
   running = true;
   next_task = AWAIT_CONNECTION;
 
-  while(running)
+  while(1)
     if(execute_task(next_task) != 0)
       runtime_errors++;
 
