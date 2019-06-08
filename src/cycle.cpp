@@ -38,7 +38,7 @@ int Cycle::execute(){
 
     // Parse client buffer
     HTTPParser client_parsed;
-    client_parsed.parseRequest(QString(client_buffer));
+    client_parsed.parseRequest(client_buffer, client_buffer_size);
 
     // Connect to website
     if((website_fd = connect_to_website(client_parsed.getHost())) <= 0){
@@ -164,7 +164,7 @@ int Cycle::read_from_website(int website_fd, char *website_buffer, size_t max_si
 
     // Read first headers
     size_read = read_socket(website_fd, website_buffer, max_size);
-    parser.parseRequest(website_buffer);
+    parser.parseRequest(website_buffer, size_read);
 
     // Read content-length
     Headers headers = parser.getHeaders();

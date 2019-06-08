@@ -36,6 +36,8 @@ int MainWindow::start_server() {
   server = new Server(server_port());
   server_t = new QThread;
 
+  connect(server, SIGNAL(errorMessage(QString)), this, SLOT(logMessage(QString)));
+
   if(server->init() == 0) {
     server->moveToThread(server_t);
     config_server_thread();
@@ -105,5 +107,4 @@ void MainWindow::config_server_thread() {
 
   // When the server thread finishes, schedule the server thread for deletion:
   connect(server_t, SIGNAL (finished()), server_t, SLOT (deleteLater()));
-
 }

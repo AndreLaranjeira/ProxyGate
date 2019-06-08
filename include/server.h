@@ -50,6 +50,7 @@ class Server : public QObject {
     void error(QString err);
     void finished();
     void website_request(QString req);
+    void errorMessage(QString);
 
   private:
     // Variables:

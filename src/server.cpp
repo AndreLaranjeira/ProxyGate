@@ -54,6 +54,9 @@ int Server::init() {
 
   // And there we go! This should make the server ready to begin accepting
   // requests. Just call Server::run() to begin.
+
+  emit errorMessage("Server initialized!");
+
   logger.success("Server initialized!");
 
   return 0;
