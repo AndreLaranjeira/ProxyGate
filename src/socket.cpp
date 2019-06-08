@@ -11,7 +11,7 @@ int close_socket(int fd) {
   //    0: Stop receiving data.
   //    1: Stop transmitting data and receiving ACKs.
   //    2: Stop receiving and transmitting data.
-  shutdown(fd, 0);
+  shutdown(fd, 2);
 
   // Close the file descriptor:
   close(fd);
@@ -30,6 +30,6 @@ ssize_t read_socket(int fd, char *buffer, size_t size) {
   end = read(fd, buffer, size);
   buffer[end] = '\0';
 
-  return (end > 0) ? end : -1;
+  return (end >= 0) ? end : -1;
 
 }

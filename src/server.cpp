@@ -114,7 +114,7 @@ int Server::execute(){
     }
 
     // Wait data from client
-    if((client_buffer_size = read_socket(client_fd, client_buffer, BUFFERSIZE)) == -1){
+    if((client_buffer_size = read_socket(client_fd, client_buffer, BUFFERSIZE)) < 0){
         logger.error("No data read from client!");
         close_socket(client_fd);
         return -1;
@@ -123,6 +123,7 @@ int Server::execute(){
     // Parse client buffer
     HTTPParser client_parsed;
     client_parsed.parseRequest(client_buffer, client_buffer_size);
+    logger.info("Client requested URL: " + client_parsed.getURL().toStdString());
 
     // Connect to website
     if((website_fd = connect_to_website(client_parsed.getHost())) <= 0){
@@ -171,6 +172,7 @@ int Server::await_connection() {
     int addrlen = sizeof(client_addr);
 
     // Accept an incoming client connection (blocking function call):
+    logger.info("Waiting for connection from client");
     return accept(server_fd,
                      reinterpret_cast<struct sockaddr*> (&client_addr),
                      reinterpret_cast<socklen_t*> (&addrlen));
@@ -209,6 +211,7 @@ int Server::connect_to_website(QString host){
            static_cast<size_t> (website_IP_data->h_length));
 
     // Connect to the website:
+    logger.info("Connecting to website socket");
     if(connect_socket(website_fd, reinterpret_cast<struct sockaddr *> (&website_addr), sizeof(website_addr)) < 0) {
         logger.error("Failed to connect to the website!");
         // Send a 403 connection refused HTTP!
@@ -221,6 +224,7 @@ int Server::connect_to_website(QString host){
 }
 
 int Server::send_to_website(int website_fd, char *send_buffer, ssize_t size){
+    logger.info("Sending message to website");
     if(send(website_fd, send_buffer, (size_t)size, 0) == -1){
         logger.error("Failed to send: " + string(strerror(errno)));
         return -1;
@@ -232,6 +236,7 @@ int Server::send_to_website(int website_fd, char *send_buffer, ssize_t size){
 
 
 int Server::send_to_client(int client_fd, char *send_buffer, ssize_t size){
+    logger.info("Sending message to client");
     if(send(client_fd, send_buffer, (size_t)size, 0) == -1){
         logger.error("Failed to send: " + string(strerror(errno)));
         return -1;
@@ -247,17 +252,25 @@ int Server::read_from_website(int website_fd, char *website_buffer, size_t max_s
     ssize_t size_read;
 
     // Read first headers
+    logger.info("Reading from website");
     size_read = read_socket(website_fd, website_buffer, max_size);
     parser.parseRequest(website_buffer, size_read);
+
+    logger.info("Received " + parser.getCode().toStdString() + " " + parser.getDescription().toStdString() + " from website");
 
     // Read content-length
     Headers headers = parser.getHeaders();
     if(headers.contains("Content-Length")){
         int length = headers["Content-Length"].first().toInt();
         while(size_read < length){
+            logger.info("Reading extra data from website [" + to_string(size_read) + "/" + to_string(max_size) + "]");
             single_read = read_socket(website_fd, website_buffer+size_read, (ssize_t)max_size-size_read);
             if(single_read == -1){
                 logger.error("Failed to read from website: " + string(strerror(errno)));
+                return -1;
+            }
+            if((size_t)size_read == max_size){
+                logger.error("Request is greater than buffer! Giving up");
                 return -1;
             }
             size_read += single_read;

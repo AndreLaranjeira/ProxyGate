@@ -160,7 +160,9 @@ QString HTTPParser::getMethod(){
 
 // Getter for host
 QString HTTPParser::getHost(){
-    return this->getHeaders()["Host"][0];
+    if(this->headers.contains("Host"))
+        return this->getHeaders()["Host"][0];
+    else return "";
 }
 
 // Getter for url

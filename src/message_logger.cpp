@@ -16,7 +16,8 @@ MessageLogger::~MessageLogger() {
 }
 
 void MessageLogger::connectMainWindow(){
-    if(w && !connected){
+    if(w != nullptr && !connected){
+      connected = true;
       connect(this, SIGNAL(sendMessage(QString)), w, SLOT(logMessage(QString)));
     }
 }
