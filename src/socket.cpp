@@ -24,12 +24,12 @@ int connect_socket (int fd, struct sockaddr *addr, socklen_t len) {
   return connect(fd, addr, len);
 }
 
-int read_socket(int fd, char *buffer, size_t size) {
+ssize_t read_socket(int fd, char *buffer, size_t size) {
 
   ssize_t end;
   end = read(fd, buffer, size);
   buffer[end] = '\0';
 
-  return end > 0 ? 0 : -1;
+  return (end > 0) ? end : -1;
 
 }
