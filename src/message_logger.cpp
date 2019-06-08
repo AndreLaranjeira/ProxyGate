@@ -3,11 +3,14 @@
 // Includes:
 #include "include/message_logger.h"
 #include "include/mainwindow.h"
-#include <QTextEdit>
+
+extern MainWindow *w;
 
 // Class methods:
-MessageLogger::MessageLogger(string p_context) {
+MessageLogger::MessageLogger(std::string p_context) {
   context = p_context;
+  // Is it safe?
+  connect(this, SIGNAL(sendMessage(QString)), w, SLOT(logMessage(QString)));
 }
 
 MessageLogger::~MessageLogger() {
@@ -17,16 +20,20 @@ MessageLogger::~MessageLogger() {
 // Public methods:
 void MessageLogger::error(string message) {
   cerr << context << ": " << "[Error] " << message << endl;
+  emit sendMessage(QString::fromStdString(context + ": " + "[Error] " + message));
 }
 
 void MessageLogger::info(string message) {
   cout << context << ": " << "[Info] " << message << endl;
+  emit sendMessage(QString::fromStdString(context + ": " + "[Info] " + message));
 }
 
 void MessageLogger::success(string message) {
   cout << context << ": " << "[Success] " << message << endl;
+  emit sendMessage(QString::fromStdString(context + ": " + "[Success] " + message));
 }
 
 void MessageLogger::warning(string message) {
   cout << context << ": " << "[Warning] " << message << endl;
+  emit sendMessage(QString::fromStdString(context + ": " + "[Warning] " + message));
 }

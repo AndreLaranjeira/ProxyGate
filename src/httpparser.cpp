@@ -8,7 +8,11 @@ HTTPParser::HTTPParser() : state(COMMANDLINE), logger("HTTPParser"){
 HeaderBodyPair HTTPParser::splitRequest(char *request, ssize_t size){
     HeaderBodyPair ret;
     ssize_t i;
-    for (i = 0; i < size-4 ; i++) {
+    if(size < 4){
+        ret.body_size = 0;
+        return ret;
+    }
+    for (i = 0; i+4 < size ; i++) {
         if(request[i+1] == '\r' && request[i+2] == '\n' && request[i+3] == '\r' && request[i+4] == '\n')
             break;
     }
@@ -99,7 +103,7 @@ bool HTTPParser::parseAnswerLine(QString line){
 
     // Regular Expression for command line
     // HTTP/1.1 403 Forbidden
-    QRegExp commandline("^(HTTP\\/(?:\\d.\\d)) (\\d{3}) (\\w+)$");
+    QRegExp commandline("^(HTTP\\/(?:\\d.\\d)) (\\d{3}) (.*)$");
     QString code, description, version;
 
     // Try to match

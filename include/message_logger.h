@@ -7,12 +7,15 @@
 // Includes:
 #include <iostream>
 #include <string>
+#include <QObject>
 
 // Namespace:
 using namespace std;
 
 // Class headers:
-class MessageLogger {
+class MessageLogger : public QObject {
+
+  Q_OBJECT
 
   public:
     // Class methods:
@@ -24,6 +27,9 @@ class MessageLogger {
     void info(string);
     void success(string);
     void warning(string);
+
+    signals:
+    void sendMessage(QString);
 
   private:
     // Variables:

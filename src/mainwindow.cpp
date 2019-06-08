@@ -6,8 +6,7 @@
 
 // Class methods:
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),
-                                          ui(new Ui::MainWindow),
-                                          logger("Main") {
+                                          ui(new Ui::MainWindow) {
   // UI configuration:
   ui->setupUi(this);
 
@@ -26,7 +25,7 @@ MainWindow::~MainWindow() {
     server->stop();     // Stop the server. Signals and slots handle the rest!
 
   // Success message:
-  logger.success("Exited application!");
+  //logger.success("Exited application!");
 
 }
 
@@ -45,7 +44,7 @@ int MainWindow::start_server() {
   }
 
   else {
-    logger.error("Failed to initialize server!");
+    //logger.error("Failed to initialize server!");
     server->deleteLater();
     server_t->deleteLater();
     return -1;
@@ -73,7 +72,7 @@ in_port_t MainWindow::server_port() {
     // Invalid port number:
     else {
       port_num = DEFAULT_PORT;
-      logger.warning("Invalid port number argument! Using default port " + to_string(DEFAULT_PORT) + " instead.");
+      //logger.warning("Invalid port number argument! Using default port " + to_string(DEFAULT_PORT) + " instead.");
     }
 
   }
