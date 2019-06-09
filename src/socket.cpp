@@ -11,7 +11,7 @@ int close_socket(int fd) {
   //    0: Stop receiving data.
   //    1: Stop transmitting data and receiving ACKs.
   //    2: Stop receiving and transmitting data.
-  shutdown(fd, 2);
+  shutdown(fd, 0);
 
   // Close the file descriptor:
   close(fd);

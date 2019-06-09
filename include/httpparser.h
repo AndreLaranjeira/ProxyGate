@@ -7,7 +7,7 @@
 #include <QHash>
 
 #include "include/message_logger.h"
-#define BUFFERSIZE 1048576
+#define HTTP_BUFFER_SIZE 1048576
 
 // Enum that describes allowed states for Parser
 typedef enum {
@@ -17,7 +17,7 @@ typedef enum {
 
 typedef struct HeaderBodyPair {
     QString header;
-    char body[BUFFERSIZE+1];
+    char body[HTTP_BUFFER_SIZE+1];
     ssize_t body_size;
 } HeaderBodyPair;
 

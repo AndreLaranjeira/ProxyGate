@@ -34,6 +34,9 @@ HeaderBodyPair HTTPParser::splitRequest(char *request, ssize_t size){
 bool HTTPParser::parse(char *request, ssize_t size){
     QList<QString> lines;
 
+    // Clean up variables:
+    headers.clear();
+
     // Split text part of body part
     this->splitted = splitRequest(request, size);
 

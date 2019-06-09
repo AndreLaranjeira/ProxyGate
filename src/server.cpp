@@ -15,6 +15,7 @@ Server::~Server() {
 
 }
 
+// Primary methods:
 int Server::init() {
 
   // Variable declaration:
@@ -22,9 +23,7 @@ int Server::init() {
   struct sockaddr_in client_addr;
 
   // Configure address on client side
-  client_addr.sin_family = AF_INET;           // IPv4.
-  client_addr.sin_addr.s_addr = INADDR_ANY;   // Accept all connections.
-  client_addr.sin_port = htons(port_number);  // Port number for proxy.
+  config_client_addr(&client_addr);
 
   // Creating the proxy socket to listen to the client:
   if((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
@@ -65,13 +64,20 @@ int Server::init() {
 
 void Server::run() {
 
+  connection client, website;
   unsigned int runtime_errors = 0;
 
-  running = true;
+  // Configure connection addresses:
+  config_client_addr(&(client.addr));
+  config_website_addr(&(website.addr));
 
-  while(running){
-      this->execute();
-  }
+  // Set control variables:
+  running = true;
+  next_task = AWAIT_CONNECTION;
+
+  while(running)
+    if(execute_task(next_task, &client, &website) != 0)
+      runtime_errors++;
 
   logger.success("Server shutdown!");
   logger.info("Number of runtime errors: " + to_string(runtime_errors));
@@ -93,195 +99,207 @@ void Server::stop() {
 
 }
 
+// Auxiliary methods:
+int Server::await_connection(connection *client) {
 
-int Server::execute(){
-    // Socket descriptors
-    int client_fd;
-    int website_fd;
+  int addrlen = sizeof(client->addr), client_fd;
 
-    // Initialize buffer for client
-    char client_buffer[BUFFERSIZE+1];
-    ssize_t client_buffer_size;
+  // Accept an incoming client connection (blocking function call):
+  logger.info("Waiting for connection from client");
 
-    // Initialize buffer for website
-    char website_buffer[BUFFERSIZE+1];
-    ssize_t website_buffer_size;
-
-    // Wait for client connection
-    if((client_fd = await_connection()) <= 0){
-        logger.error("Failed to accept an incoming connection!");
-        return -1;
-    }
-
-    // Wait data from client
-    if((client_buffer_size = read_socket(client_fd, client_buffer, BUFFERSIZE)) < 0){
-        logger.error("No data read from client!");
-        close_socket(client_fd);
-        return -1;
-    }
-
-    // Parse client buffer
-    HTTPParser client_parsed;
-    client_parsed.parseRequest(client_buffer, client_buffer_size);
-    logger.info("Client requested URL: " + client_parsed.getURL().toStdString());
-
-    // Connect to website
-    if((website_fd = connect_to_website(client_parsed.getHost())) <= 0){
-        logger.error("Could not connect to website!");
-        return -1;
-    }
-
-    // Send to website
-    if(send_to_website(website_fd, client_buffer, client_buffer_size) == -1){
-        logger.error("Failed send buffer to website!");
-        close_socket(client_fd);
-        close_socket(website_fd);
-        return -1;
-    }
-
-    // Wait data from website
-    if((website_buffer_size = read_from_website(website_fd, website_buffer, BUFFERSIZE)) == -1){
-        logger.error("Failed to read from website!");
-        close_socket(client_fd);
-        close_socket(website_fd);
-        return -1;
-    }
-
-    close_socket(website_fd);
-
-    // Send to client
-    if(send_to_client(client_fd, website_buffer, website_buffer_size) == -1){
-        logger.error("Failed to send message to client!");
-        close_socket(client_fd);
-        return -1;
-    }
-
-    close_socket(client_fd);
-
-    return 0;
-}
-
-int Server::await_connection() {
-
-    struct sockaddr_in client_addr;
-
-    client_addr.sin_family = AF_INET;           // IPv4.
-    client_addr.sin_addr.s_addr = INADDR_ANY;   // Accept all connections.
-    client_addr.sin_port = htons(port_number);  // Port number for proxy.
-
-    int addrlen = sizeof(client_addr);
-
-    // Accept an incoming client connection (blocking function call):
-    logger.info("Waiting for connection from client");
-    return accept(server_fd,
-                     reinterpret_cast<struct sockaddr*> (&client_addr),
+  client_fd = accept(server_fd,
+                     reinterpret_cast<struct sockaddr*> (&(client->addr)),
                      reinterpret_cast<socklen_t*> (&addrlen));
 
+  // Check to see if the connection succeded:
+  if(client_fd != -1) {
+    client->fd = client_fd;
+    next_task = READ_FROM_CLIENT;
+    return 0;
+  }
+
+  else if(!running)
+    return 0;
+
+  else {
+    logger.error("Failed to accept an incoming connection!");
+    next_task = AWAIT_CONNECTION;
+    return -1;
+  }
+
 }
 
-int Server::connect_to_website(QString host){
-    int website_fd;
-    struct hostent *website_IP_data;
-    struct sockaddr_in website_addr;
+int Server::await_gate() {
 
-    if((website_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0){
+//  // Wait for the gate to open or for the program to finish:
+//  while(gate_closed) {
+//    if(running == false)
+//      break;
+//  }
+
+  // Decide next state based on the last read connection:
+  switch(last_read) {
+
+    case CLIENT:
+      next_task = CONNECT_TO_WEBSITE;
+      break;
+
+    case WEBSITE:
+      next_task = SEND_TO_CLIENT;
+      break;
+
+  }
+
+  // Close the gates again:
+  // gate_closed = true;
+
+  return 0;
+
+}
+
+int Server::connect_to_website(connection *client, connection *website){
+    HTTPParser parser;
+    struct hostent *website_IP_data;
+
+    if((website->fd = socket(AF_INET, SOCK_STREAM, 0)) == 0){
         logger.error("Failed to create server socket!");
+        close(client->fd);
+        next_task = AWAIT_CONNECTION;
         return -1;
     }
 
+    // Find the host name from the client request:
+    parser.parseRequest(client->buffer, client->buffer_size);
+
     // Find the IP address for a given host:
-    website_IP_data = gethostbyname(host.toStdString().c_str());
+    website_IP_data = gethostbyname(parser.getHost().toStdString().c_str());
 
     if(website_IP_data == nullptr) {
         logger.error("Failed to find an IP address for the server website");
-        // Send a 404 page not found HTTP!
-        // What should the next task be?
-        // next_state = SEND_TO_CLIENT;
+        close(client->fd);
+        close(website->fd);
+        next_task = AWAIT_CONNECTION;
         return -1;
     }
 
-    // Configure the proxy website server addresses:
-    memset(&website_addr, 0, sizeof(website_addr));
-    website_addr.sin_family = AF_INET;  // IPv4.
-    website_addr.sin_port = htons(80);  // Port number for website (HTTP).
-
-
     // Copy the IP address obtained:
-    memcpy(&website_addr.sin_addr.s_addr, website_IP_data->h_addr,
+    memcpy(&(website->addr.sin_addr.s_addr), website_IP_data->h_addr,
            static_cast<size_t> (website_IP_data->h_length));
 
     // Connect to the website:
     logger.info("Connecting to website socket");
-    if(connect_socket(website_fd, reinterpret_cast<struct sockaddr *> (&website_addr), sizeof(website_addr)) < 0) {
+    if(connect_socket(website->fd,
+                      reinterpret_cast<struct sockaddr *> (&(website->addr)),
+                      sizeof(website->addr)) < 0) {
         logger.error("Failed to connect to the website!");
-        // Send a 403 connection refused HTTP!
-        // What should the next task be?
-        // next_state = SEND_TO_CLIENT;
+        close(client->fd);
+        close(website->fd);
+        next_task = AWAIT_CONNECTION;
         return -1;
     }
 
-    return website_fd;
-}
-
-int Server::send_to_website(int website_fd, char *send_buffer, ssize_t size){
-    logger.info("Sending message to website");
-    if(send(website_fd, send_buffer, (size_t)size, 0) == -1){
-        logger.error("Failed to send: " + string(strerror(errno)));
-        return -1;
-    }
-
-    logger.info("Sent some message to website!");
+    next_task = SEND_TO_WEBSITE;
     return 0;
+
 }
 
+int Server::execute_task(ServerTask task, connection *client,
+                         connection *website) {
 
-int Server::send_to_client(int client_fd, char *send_buffer, ssize_t size){
-    logger.info("Sending message to client");
-    if(send(client_fd, send_buffer, (size_t)size, 0) == -1){
-        logger.error("Failed to send: " + string(strerror(errno)));
-        return -1;
-    }
+  switch(task) {
+    case AWAIT_CONNECTION:
+      return await_connection(client);
+    case AWAIT_GATE:
+      return await_gate();
+    case CONNECT_TO_WEBSITE:
+      return connect_to_website(client, website);
+    case READ_FROM_CLIENT:
+      return read_from_client(client);
+    case READ_FROM_WEBSITE:
+      return read_from_website(client, website);
+    case SEND_TO_CLIENT:
+      return send_to_client(client, website);
+    case SEND_TO_WEBSITE:
+      return send_to_website(client, website);
+  }
 
-    logger.info("Sent some message to client!");
+  return -1;   // A failsafe!
+
+}
+
+int Server::read_from_client(connection *client) {
+
+  // Client sent data:
+  if((client->buffer_size = read_socket(client->fd, client->buffer, HTTP_BUFFER_SIZE)) > 0) {
+    last_read = CLIENT;
+    next_task = AWAIT_GATE;
     return 0;
+  }
+
+  // Client didn't send data:
+  else {
+    logger.error("No data read from client!");
+
+    close(client->fd);
+
+    next_task = AWAIT_CONNECTION;
+    return -1;
+  }
+
 }
 
-int Server::read_from_website(int website_fd, char *website_buffer, size_t max_size){
+int Server::read_from_website(connection *client, connection *website){
+
     HTTPParser parser;
+    int length;
+    size_t max_size = HTTP_BUFFER_SIZE;
     ssize_t single_read;
     ssize_t size_read;
 
-    // Read first headers
+    // Read first headers:
     logger.info("Reading from website");
-    size_read = read_socket(website_fd, website_buffer, max_size);
-    parser.parseRequest(website_buffer, size_read);
+    size_read = read_socket(website->fd, website->buffer, max_size);
+    parser.parseRequest(website->buffer, size_read);
 
     logger.info("Received " + parser.getCode().toStdString() + " " + parser.getDescription().toStdString() + " from website");
 
-    // Read content-length
+    // Read content-length:
     Headers headers = parser.getHeaders();
     if(headers.contains("Content-Length")){
-        int length = headers["Content-Length"].first().toInt();
+        length = headers["Content-Length"].first().toInt();
         while(size_read < length){
             logger.info("Reading extra data from website [" + to_string(size_read) + "/" + to_string(length) + "]");
-            single_read = read_socket(website_fd, website_buffer+size_read, (ssize_t)max_size-size_read);
-            if(single_read == -1){
+            single_read = read_socket(website->fd, website->buffer+size_read,
+                                      static_cast<ssize_t> (max_size-size_read));
+
+            if(single_read == -1) {
                 logger.error("Failed to read from website: " + string(strerror(errno)));
+                close(client->fd);
+                close(website->fd);
+                next_task = AWAIT_CONNECTION;
                 return -1;
             }
-            if((size_t)size_read == max_size){
+
+            if(static_cast<size_t> (size_read) == max_size){
                 logger.error("Request is greater than buffer! Giving up");
+                close(client->fd);
+                close(website->fd);
+                next_task = AWAIT_CONNECTION;
                 return -1;
             }
+
             size_read += single_read;
+
         }
+
     }
+
     else if(headers.contains("Transfer-Encoding")){
         if(headers["Transfer-Encoding"].first() == "chunked"){
             while(
-                (single_read = read_socket(website_fd,
-                                          website_buffer+size_read,
-                                          (ssize_t)max_size-size_read)) > 0
+                (single_read = read_socket(website->fd,
+                                           website->buffer+size_read,
+                                           static_cast<ssize_t> (max_size-size_read))) > 0
             ){
                 logger.info("Reading extra data from website (chunked) [" + to_string(size_read) + "/" + to_string(max_size) + "]");
                 size_read += single_read;
@@ -289,9 +307,62 @@ int Server::read_from_website(int website_fd, char *website_buffer, size_t max_s
         }
     }
     else{
-        logger.warning("Website response doesn't contain Content-Length nether Transfer-Encoding");
+        logger.warning("Website response doesn't contain Content-Length neither Transfer-Encoding");
     }
 
-    return (int)size_read;
+    website->buffer_size = size_read;
+    close(website->fd);
+
+    last_read = WEBSITE;
+    next_task = AWAIT_GATE;
+    return 0;
+
 }
 
+int Server::send_to_client(connection *client, connection *website){
+    logger.info("Sending message to client");
+
+    if(send(client->fd, website->buffer, static_cast<size_t> (website->buffer_size), 0) == -1){
+        logger.error("Failed to send: " + string(strerror(errno)));
+        close(client->fd);
+        next_task = AWAIT_CONNECTION;
+        return -1;
+    }
+
+    logger.info("Sent some message to client!");
+    close(client->fd);
+    next_task = AWAIT_CONNECTION;
+    return 0;
+
+}
+
+int Server::send_to_website(connection *client, connection *website){
+
+    logger.info("Sending message to website");
+
+    if(send(website->fd, client->buffer,
+            static_cast<size_t> (client->buffer_size), 0) == -1){
+        logger.error("Failed to send: " + string(strerror(errno)));
+        close(client->fd);
+        close(website->fd);
+        next_task = AWAIT_CONNECTION;
+        return -1;
+    }
+
+    logger.info("Sent some message to website!");
+    next_task = READ_FROM_WEBSITE;
+    return 0;
+
+}
+
+void Server::config_client_addr(struct sockaddr_in *client_addr) {
+  client_addr->sin_family = AF_INET;           // IPv4.
+  client_addr->sin_addr.s_addr = INADDR_ANY;   // Accept all connections.
+  client_addr->sin_port = htons(port_number);  // Port number for proxy.
+}
+
+void Server::config_website_addr(struct sockaddr_in *website_addr) {
+  memset(website_addr, 0, sizeof(*website_addr));
+  website_addr->sin_family = AF_INET;  // IPv4.
+  website_addr->sin_port = htons(80);  // Port number for website (HTTP).
+}

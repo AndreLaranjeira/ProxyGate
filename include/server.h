@@ -28,6 +28,29 @@ using namespace std;
 #define DEFAULT_PORT 8228
 #define SERVER_BACKLOG 3
 
+// Type definitions:
+typedef enum {
+  CLIENT,
+  WEBSITE
+} ServerConnections;
+
+typedef enum {
+  AWAIT_CONNECTION,
+  AWAIT_GATE,
+  CONNECT_TO_WEBSITE,
+  READ_FROM_CLIENT,
+  READ_FROM_WEBSITE,
+  SEND_TO_CLIENT,
+  SEND_TO_WEBSITE
+} ServerTask;
+
+typedef struct {
+  int fd;
+  char buffer[HTTP_BUFFER_SIZE+1];
+  ssize_t buffer_size;
+  struct sockaddr_in addr;
+} connection;
+
 // Class headers:
 class Server : public QObject {
   Q_OBJECT
@@ -47,9 +70,9 @@ class Server : public QObject {
   signals:
     void client_request(QString req);
     void error(QString err);
+    void errorMessage(QString);
     void finished();
     void website_request(QString req);
-    void errorMessage(QString);
 
   private:
     // Variables:
@@ -60,14 +83,20 @@ class Server : public QObject {
 
     // Classes and custom types:
     MessageLogger logger;
+    ServerConnections last_read;
+    ServerTask next_task;
 
     // Methods:
-    int execute();
-    int await_connection();
-    int connect_to_website(QString);
-    int send_to_website(int, char *, ssize_t);
-    int send_to_client(int, char *, ssize_t);
-    int read_from_website(int, char *, size_t);
+    int await_connection(connection*);
+    int await_gate();
+    int connect_to_website(connection*, connection*);
+    int execute_task(ServerTask, connection*, connection*);
+    int read_from_client(connection*);
+    int read_from_website(connection*, connection*);
+    int send_to_client(connection*, connection*);
+    int send_to_website(connection*, connection*);
+    void config_client_addr(struct sockaddr_in*);
+    void config_website_addr(struct sockaddr_in*);
 
 };
 
