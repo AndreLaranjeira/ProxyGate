@@ -7,7 +7,7 @@
 #include <QHash>
 
 #include "include/message_logger.h"
-#define BUFFERSIZE 131072
+#define BUFFERSIZE 1048576
 
 // Enum that describes allowed states for Parser
 typedef enum {

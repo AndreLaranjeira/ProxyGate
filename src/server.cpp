@@ -263,7 +263,7 @@ int Server::read_from_website(int website_fd, char *website_buffer, size_t max_s
     if(headers.contains("Content-Length")){
         int length = headers["Content-Length"].first().toInt();
         while(size_read < length){
-            logger.info("Reading extra data from website [" + to_string(size_read) + "/" + to_string(max_size) + "]");
+            logger.info("Reading extra data from website [" + to_string(size_read) + "/" + to_string(length) + "]");
             single_read = read_socket(website_fd, website_buffer+size_read, (ssize_t)max_size-size_read);
             if(single_read == -1){
                 logger.error("Failed to read from website: " + string(strerror(errno)));
@@ -275,6 +275,21 @@ int Server::read_from_website(int website_fd, char *website_buffer, size_t max_s
             }
             size_read += single_read;
         }
+    }
+    else if(headers.contains("Transfer-Encoding")){
+        if(headers["Transfer-Encoding"].first() == "chunked"){
+            while(
+                (single_read = read_socket(website_fd,
+                                          website_buffer+size_read,
+                                          (ssize_t)max_size-size_read)) > 0
+            ){
+                logger.info("Reading extra data from website (chunked) [" + to_string(size_read) + "/" + to_string(max_size) + "]");
+                size_read += single_read;
+            }
+        }
+    }
+    else{
+        logger.warning("Website response doesn't contain Content-Length nether Transfer-Encoding");
     }
 
     return (int)size_read;
