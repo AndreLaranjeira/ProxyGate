@@ -92,11 +92,12 @@ class Server : public QObject {
     int connect_to_website(connection*, connection*);
     int execute_task(ServerTask, connection*, connection*);
     int read_from_client(connection*);
-    int read_from_website(connection*, connection*);
+    int read_from_website(connection*);
     int send_to_client(connection*, connection*);
     int send_to_website(connection*, connection*);
     void config_client_addr(struct sockaddr_in*);
     void config_website_addr(struct sockaddr_in*);
+    void handle_error(ServerTask, int, int);
 
 };
 

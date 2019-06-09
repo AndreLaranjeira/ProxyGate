@@ -15,7 +15,7 @@ Server::~Server() {
 
 }
 
-// Primary methods:
+// Public methods:
 int Server::init() {
 
   // Variable declaration:
@@ -99,7 +99,7 @@ void Server::stop() {
 
 }
 
-// Auxiliary methods:
+// Private methods:
 int Server::await_connection(connection *client) {
 
   int addrlen = sizeof(client->addr), client_fd;
@@ -118,12 +118,13 @@ int Server::await_connection(connection *client) {
     return 0;
   }
 
-  else if(!running)
+  else if(!running) {
+    close_socket(client_fd);
     return 0;
+  }
 
   else {
     logger.error("Failed to accept an incoming connection!");
-    next_task = AWAIT_CONNECTION;
     return -1;
   }
 
@@ -163,8 +164,6 @@ int Server::connect_to_website(connection *client, connection *website){
 
     if((website->fd = socket(AF_INET, SOCK_STREAM, 0)) == 0){
         logger.error("Failed to create server socket!");
-        close(client->fd);
-        next_task = AWAIT_CONNECTION;
         return -1;
     }
 
@@ -176,9 +175,7 @@ int Server::connect_to_website(connection *client, connection *website){
 
     if(website_IP_data == nullptr) {
         logger.error("Failed to find an IP address for the server website");
-        close(client->fd);
         close(website->fd);
-        next_task = AWAIT_CONNECTION;
         return -1;
     }
 
@@ -192,9 +189,7 @@ int Server::connect_to_website(connection *client, connection *website){
                       reinterpret_cast<struct sockaddr *> (&(website->addr)),
                       sizeof(website->addr)) < 0) {
         logger.error("Failed to connect to the website!");
-        close(client->fd);
         close(website->fd);
-        next_task = AWAIT_CONNECTION;
         return -1;
     }
 
@@ -206,24 +201,39 @@ int Server::connect_to_website(connection *client, connection *website){
 int Server::execute_task(ServerTask task, connection *client,
                          connection *website) {
 
+  int return_code = -1; // A failsafe (in case the switch fails)!
+
   switch(task) {
     case AWAIT_CONNECTION:
-      return await_connection(client);
+      return_code = await_connection(client);
+      break;
     case AWAIT_GATE:
-      return await_gate();
+      return_code = await_gate();
+      break;
     case CONNECT_TO_WEBSITE:
-      return connect_to_website(client, website);
+      return_code = connect_to_website(client, website);
+      break;
     case READ_FROM_CLIENT:
-      return read_from_client(client);
+      return_code = read_from_client(client);
+      break;
     case READ_FROM_WEBSITE:
-      return read_from_website(client, website);
+      return_code = read_from_website(website);
+      break;
     case SEND_TO_CLIENT:
-      return send_to_client(client, website);
+      return_code = send_to_client(client, website);
+      break;
     case SEND_TO_WEBSITE:
-      return send_to_website(client, website);
+      return_code = send_to_website(client, website);
+      break;
   }
 
-  return -1;   // A failsafe!
+  // In case an error occurred:
+  if(return_code == -1) {
+    handle_error(task, client->fd, website->fd);  // Take necessary actions.
+    next_task = AWAIT_CONNECTION;                 // Reset the event loop;
+  }
+
+  return return_code;
 
 }
 
@@ -239,16 +249,12 @@ int Server::read_from_client(connection *client) {
   // Client didn't send data:
   else {
     logger.error("No data read from client!");
-
-    close(client->fd);
-
-    next_task = AWAIT_CONNECTION;
     return -1;
   }
 
 }
 
-int Server::read_from_website(connection *client, connection *website){
+int Server::read_from_website(connection *website){
 
     HTTPParser parser;
     int length;
@@ -274,17 +280,11 @@ int Server::read_from_website(connection *client, connection *website){
 
             if(single_read == -1) {
                 logger.error("Failed to read from website: " + string(strerror(errno)));
-                close(client->fd);
-                close(website->fd);
-                next_task = AWAIT_CONNECTION;
                 return -1;
             }
 
             if(static_cast<size_t> (size_read) == max_size){
                 logger.error("Request is greater than buffer! Giving up");
-                close(client->fd);
-                close(website->fd);
-                next_task = AWAIT_CONNECTION;
                 return -1;
             }
 
@@ -324,8 +324,6 @@ int Server::send_to_client(connection *client, connection *website){
 
     if(send(client->fd, website->buffer, static_cast<size_t> (website->buffer_size), 0) == -1){
         logger.error("Failed to send: " + string(strerror(errno)));
-        close(client->fd);
-        next_task = AWAIT_CONNECTION;
         return -1;
     }
 
@@ -343,9 +341,6 @@ int Server::send_to_website(connection *client, connection *website){
     if(send(website->fd, client->buffer,
             static_cast<size_t> (client->buffer_size), 0) == -1){
         logger.error("Failed to send: " + string(strerror(errno)));
-        close(client->fd);
-        close(website->fd);
-        next_task = AWAIT_CONNECTION;
         return -1;
     }
 
@@ -365,4 +360,32 @@ void Server::config_website_addr(struct sockaddr_in *website_addr) {
   memset(website_addr, 0, sizeof(*website_addr));
   website_addr->sin_family = AF_INET;  // IPv4.
   website_addr->sin_port = htons(80);  // Port number for website (HTTP).
+}
+
+void Server::handle_error(ServerTask task, int client_fd, int website_fd) {
+
+  switch(task) {
+    case AWAIT_CONNECTION:
+      return;
+    case AWAIT_GATE:
+      return;
+    case CONNECT_TO_WEBSITE:
+      close(client_fd);
+      break;
+    case READ_FROM_CLIENT:
+      close(client_fd);
+      break;
+    case READ_FROM_WEBSITE:
+      close(client_fd);
+      close(website_fd);
+      break;
+    case SEND_TO_CLIENT:
+      close(client_fd);
+      break;
+    case SEND_TO_WEBSITE:
+      close(client_fd);
+      close(website_fd);
+      break;
+  }
+
 }
