@@ -50,7 +50,7 @@ bool HTTPParser::parse(char *request, ssize_t size){
             case COMMANDLINE:
                 // ParseCommandLine method modifies class attributes
                 if(!this->parseCommandLine(line) && !this->parseAnswerLine(line)){
-                   logger.error("Could not parse COMMAND LINE");
+                   logger.error("Could not parse COMMAND LINE: \"" + line.toStdString() + "\"");
                    return false;
                 }
 
@@ -62,7 +62,7 @@ bool HTTPParser::parse(char *request, ssize_t size){
             case HEADERLINE:
                 // ParseHeaderLine modifies class attributes
                 if(!this->parseHeaderLine(line)){
-                    logger.error("Could not parse HEADER LINE");
+                    logger.error("Could not parse HEADER LINE: \"" + line.toStdString() + "\"");
                     return false;
                 }
             break;
@@ -130,7 +130,7 @@ bool HTTPParser::parseHeaderLine(QString line){
     int pos;
 
     // Regular Expression for Header Line
-    QRegExp headerline("^([A-Za-z-]*): (.*)$");
+    QRegExp headerline("^([A-Za-z-0-9]*): (.*)$");
     QString name, value;
 
     // Try to match
