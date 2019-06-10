@@ -64,6 +64,7 @@ class Server : public QObject {
     int init();
 
   public slots:
+    void open_gate();
     void run();
     void stop();
 
@@ -72,12 +73,14 @@ class Server : public QObject {
     void error(QString err);
     void errorMessage(QString);
     void finished();
+    void gate_opened();
     void website_request(QString req);
 
   private:
     // Variables:
     in_port_t port_number;
 
+    bool gate_closed;
     bool running;
     int server_fd;
 

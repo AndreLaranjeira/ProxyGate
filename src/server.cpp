@@ -62,6 +62,11 @@ int Server::init() {
 
 }
 
+void Server::open_gate() {
+  gate_closed = false;
+  emit gate_opened();
+}
+
 void Server::run() {
 
   connection client, website;
@@ -72,6 +77,7 @@ void Server::run() {
   config_website_addr(&(website.addr));
 
   // Set control variables:
+  gate_closed = true;
   running = true;
   next_task = AWAIT_CONNECTION;
 
@@ -132,11 +138,13 @@ int Server::await_connection(connection *client) {
 
 int Server::await_gate() {
 
-//  // Wait for the gate to open or for the program to finish:
-//  while(gate_closed) {
-//    if(running == false)
-//      break;
-//  }
+  logger.info("Awaiting for gate to open!");
+
+  // Wait for the gate to open or for the program to finish:
+  while(gate_closed) {
+    if(running == false)
+      break;
+  }
 
   // Decide next state based on the last read connection:
   switch(last_read) {
@@ -152,7 +160,7 @@ int Server::await_gate() {
   }
 
   // Close the gates again:
-  // gate_closed = true;
+  gate_closed = true;
 
   return 0;
 
@@ -241,6 +249,7 @@ int Server::read_from_client(connection *client) {
 
   // Client sent data:
   if((client->buffer_size = read_socket(client->fd, client->buffer, HTTP_BUFFER_SIZE)) > 0) {
+    emit client_request(QString(client->buffer));
     last_read = CLIENT;
     next_task = AWAIT_GATE;
     return 0;
@@ -313,6 +322,7 @@ int Server::read_from_website(connection *website){
     website->buffer_size = size_read;
     close(website->fd);
 
+    emit website_request(QString(website->buffer));
     last_read = WEBSITE;
     next_task = AWAIT_GATE;
     return 0;

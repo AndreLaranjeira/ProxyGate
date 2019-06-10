@@ -54,6 +54,11 @@ int MainWindow::start_server() {
 
 }
 
+void MainWindow::logMessage(QString message) {
+  QTextEdit *t = this->findChild<QTextEdit*>("logTextEdit");
+  t->append(message);
+}
+
 // Private methods:
 in_port_t MainWindow::server_port() {
 
@@ -92,8 +97,17 @@ void MainWindow::config_server_thread() {
   // If there is an error, signal the Main Window:
   //connect(server, SIGNAL (error(QString)), this, SLOT (errorString(QString)));
 
-  // Connect the gate_button signal to the server open_gate slot:
-  //connect(ui->button_gate, SIGNAL (released()), server, SLOT (open_gate()));
+  // Configure the client request to be displayed:
+  connect(server, SIGNAL (client_request(QString)), ui->text_client,
+          SLOT (setPlainText(QString)));
+
+  // Configure the website request to be displayed:
+  connect(server, SIGNAL (website_request(QString)), ui->text_website,
+          SLOT (setPlainText(QString)));
+
+  // Configure the gate to erase both requests displayed in text boxes:
+  connect(server, SIGNAL (gate_opened()), ui->text_client, SLOT (clear()));
+  connect(server, SIGNAL (gate_opened()), ui->text_website, SLOT (clear()));
 
   // The server thread should start the server:
   connect(server_t, SIGNAL (started()), server, SLOT (run()));
@@ -106,4 +120,8 @@ void MainWindow::config_server_thread() {
 
   // When the server thread finishes, schedule the server thread for deletion:
   connect(server_t, SIGNAL (finished()), server_t, SLOT (deleteLater()));
+}
+
+void MainWindow::on_button_gate_clicked() {
+  server->open_gate();
 }

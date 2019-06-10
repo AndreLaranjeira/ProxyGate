@@ -68,7 +68,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QPlainTextEdit" name="text_request"/>
+        <widget class="QPlainTextEdit" name="text_client"/>
        </item>
       </layout>
      </item>
@@ -82,7 +82,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QPlainTextEdit" name="text_reply"/>
+        <widget class="QPlainTextEdit" name="text_website"/>
        </item>
       </layout>
      </item>
