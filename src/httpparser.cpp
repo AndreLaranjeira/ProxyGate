@@ -4,15 +4,44 @@
 HTTPParser::HTTPParser() : state(COMMANDLINE), logger("HTTPParser"){
 }
 
+// Gets raw request and returns HeaderBodyPair which splits header part (text) from body (can be binary)
+HeaderBodyPair HTTPParser::splitRequest(char *request, ssize_t size){
+    HeaderBodyPair ret;
+    ssize_t i;
+    char tmp;
+    if(size < 4){
+        ret.body_size = 0;
+        return ret;
+    }
+    for (i = 0; i+4 < size ; i++) {
+        if(request[i+1] == '\r' && request[i+2] == '\n' && request[i+3] == '\r' && request[i+4] == '\n')
+            break;
+    }
+    tmp = request[i+1];
+    request[i+1] = '\0';
+    ret.header = QString(request);
+    request[i+1] = tmp;
+
+    ret.body_size = size-i-5;
+    memcpy(ret.body, request+i+5, (size_t)(size-i-5));
+    return ret;
+}
+
 // Private method that receives a request and parses it
 // Returns true if no error occoured and false if
 // something went wrong
 
-bool HTTPParser::parse(QString request){
+bool HTTPParser::parse(char *request, ssize_t size){
     QList<QString> lines;
 
+    // Clean up variables:
+    headers.clear();
+
+    // Split text part of body part
+    this->splitted = splitRequest(request, size);
+
     // Split in \r\n
-    lines = request.split(QRegExp("\r\n"));
+    lines = splitted.header.split(QRegExp("\r\n"));
 
     // Loop through lines
     for (QString line : lines) {
@@ -23,8 +52,8 @@ bool HTTPParser::parse(QString request){
             // CommandLine state is the first line to be read
             case COMMANDLINE:
                 // ParseCommandLine method modifies class attributes
-                if(!this->parseCommandLine(line)){
-                   logger.error("Could not parse COMMAND LINE");
+                if(!this->parseCommandLine(line) && !this->parseAnswerLine(line)){
+                   logger.error("Could not parse COMMAND LINE: \"" + line.toStdString() + "\"");
                    return false;
                 }
 
@@ -34,23 +63,11 @@ bool HTTPParser::parse(QString request){
 
             // HeaderLine state is to interpret line as a header
             case HEADERLINE:
-
-                // Empty line means begin of data section
-                if(line == ""){
-                    state = DATA;
+                // ParseHeaderLine modifies class attributes
+                if(!this->parseHeaderLine(line)){
+                    logger.error("Could not parse HEADER LINE: \"" + line.toStdString() + "\"");
+                    return false;
                 }
-                else {
-                    // ParseHeaderLine modifies class attributes
-                    if(!this->parseHeaderLine(line)){
-                        logger.error("Could not parse HEADER LINE");
-                        return false;
-                    }
-                }
-            break;
-
-            // Data state means to copy blindly the body into data
-            case DATA:
-                this->data += line;
             break;
         }
     }
@@ -84,6 +101,31 @@ bool HTTPParser::parseCommandLine(QString line){
     return true;
 }
 
+// This method parsers first line of a HTTP request
+// It alters private members of class
+// Returns false if could not match with expected expression
+bool HTTPParser::parseAnswerLine(QString line){
+    int pos;
+
+    // Regular Expression for command line
+    // HTTP/1.1 403 Forbidden
+    QRegExp commandline("^(HTTP\\/(?:\\d.\\d)) (\\d{3}) (.*)$");
+    QString code, description, version;
+
+    // Try to match
+    pos = commandline.indexIn(line);
+
+    // Should match exactly the first character
+    if(pos != 0) return false;
+
+    // Set private variables
+    this->version = commandline.cap(1);
+    this->code = commandline.cap(2);
+    this->description = commandline.cap(3);
+
+    return true;
+}
+
 // This method parsers a header line of a HTTP request
 // It alters private members of class
 // Returns false if could not match with expected expression
@@ -91,7 +133,7 @@ bool HTTPParser::parseHeaderLine(QString line){
     int pos;
 
     // Regular Expression for Header Line
-    QRegExp headerline("^([A-Za-z-]*): (.*)$");
+    QRegExp headerline("^([A-Za-z-0-9]*): (.*)$");
     QString name, value;
 
     // Try to match
@@ -119,6 +161,13 @@ QString HTTPParser::getMethod(){
     return this->method;
 }
 
+// Getter for host
+QString HTTPParser::getHost(){
+    if(this->headers.contains("Host"))
+        return this->getHeaders()["Host"][0];
+    else return "";
+}
+
 // Getter for url
 QString HTTPParser::getURL(){
     return this->url;
@@ -129,9 +178,24 @@ QString HTTPParser::getHTTPVersion(){
     return this->version;
 }
 
+// Getter for code
+QString HTTPParser::getCode(){
+    return this->code;
+}
+
+// Getter for description
+QString HTTPParser::getDescription(){
+    return this->description;
+}
+
 // Getter for data
-QString HTTPParser::getData(){
-    return this->data;
+char *HTTPParser::getData(){
+    return this->splitted.body;
+}
+
+// Getter for data
+ssize_t HTTPParser::getDataSize(){
+    return this->splitted.body_size;
 }
 
 // Getter for headers
@@ -140,8 +204,8 @@ Headers HTTPParser::getHeaders(){
 }
 
 // Public method that parsers a request
-bool HTTPParser::parseRequest(QString request){
-    return this->parse(request);
+bool HTTPParser::parseRequest(char *request, ssize_t size){
+    return this->parse(request, size);
 }
 
 // Shows in screen beautified the parsed HTTP request
@@ -156,7 +220,14 @@ void HTTPParser::prettyPrinter(){
     logger.info("Parsed Method: " + this->getMethod().toUtf8().toStdString());
     logger.info("Parsed HTTP Version: " + this->getHTTPVersion().toUtf8().toStdString());
     logger.info("Parsed URL: " + this->getURL().toUtf8().toStdString());
-    logger.info("Parsed Data: \"" + this->getData().toUtf8().toStdString() + "\"");
+    for(ssize_t i=0 ; i<this->getDataSize(); i++){
+//        if(this->getData()[i] == '\0'){
+//            std::cout << "END OF STRING FOUND, MAYBE BINARY DATA" << endl;
+//            //break;
+//        }
+        std::cout << this->getData()[i] << " (" << ((int)this->getData()[i]) << ")" << endl;
+    }
+    cout << endl;
 }
 
 // Converts HTTPParser object into a QString request

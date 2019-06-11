@@ -1,5 +1,13 @@
-# User configuration file:
+# User-specific files:
+Makefile
 ProxyGate.pro.user
 
-# Build folders:
+# Build files and folders:
+.qmake.stash
 build-*
+moc_*
+*.o
+ui_*
+
+# Executable:
+ProxyGate

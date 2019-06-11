@@ -7,13 +7,19 @@
 #include <QHash>
 
 #include "include/message_logger.h"
+#define HTTP_BUFFER_SIZE 1048576
 
 // Enum that describes allowed states for Parser
 typedef enum {
     COMMANDLINE,
-    HEADERLINE,
-    DATA
+    HEADERLINE
 } ParserState;
+
+typedef struct HeaderBodyPair {
+    QString header;
+    char body[HTTP_BUFFER_SIZE+1];
+    ssize_t body_size;
+} HeaderBodyPair;
 
 // Typedef to abstract Headers hash
 typedef QHash<QString,QList<QString>> Headers;
@@ -25,7 +31,9 @@ class HTTPParser {
         QString method;
         QString url;
         QString version;
-        QString data;
+        QString code;
+        QString description;
+        HeaderBodyPair splitted;
         Headers headers;
 
         // Parser state
@@ -35,22 +43,28 @@ class HTTPParser {
         MessageLogger logger;
 
         // Private aux methods for parsing
+        HeaderBodyPair splitRequest(char *, ssize_t);
         bool parseCommandLine(QString);
+        bool parseAnswerLine(QString);
         bool parseHeaderLine(QString);
-        bool parse(QString);
+        bool parse(char *, ssize_t);
     public:
         // Constructor
         HTTPParser();
 
         // Getters
         QString getMethod();
+        QString getHost();
         QString getURL();
         QString getHTTPVersion();
-        QString getData();
+        QString getCode();
+        QString getDescription();
+        char *getData();
+        ssize_t getDataSize();
         Headers getHeaders();
 
         // Parser
-        bool parseRequest(QString);
+        bool parseRequest(char *, ssize_t);
 
         // PrettyPrinter method
         void prettyPrinter();
