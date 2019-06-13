@@ -32,7 +32,7 @@ class MainWindow : public QMainWindow {
     int start_server();
 
   public slots:
-    void logMessage(QString);
+    //void logMessage(QString);
 
   private slots:
     void on_button_gate_clicked();

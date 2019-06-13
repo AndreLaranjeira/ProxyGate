@@ -2,6 +2,12 @@
 
 // Parser initializer
 HTTPParser::HTTPParser() : state(COMMANDLINE), logger("HTTPParser"){
+  // Connect message logger:
+  connect(&logger, SIGNAL (sendMessage(QString)), this, SIGNAL (logMessage(QString)));
+}
+
+HTTPParser::~HTTPParser() {
+
 }
 
 // Gets raw request and returns HeaderBodyPair which splits header part (text) from body (can be binary)
@@ -36,6 +42,9 @@ bool HTTPParser::parse(char *request, ssize_t size){
 
     // Clean up variables:
     headers.clear();
+
+    // Set initial state
+    state = COMMANDLINE;
 
     // Split text part of body part
     this->splitted = splitRequest(request, size);

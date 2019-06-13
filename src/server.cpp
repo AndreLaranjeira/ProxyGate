@@ -6,6 +6,12 @@
 // Class methods:
 Server::Server(in_port_t port_number) : port_number(port_number), logger("Server") {
 
+  // Connect message loggers:
+  connect(&logger, SIGNAL (sendMessage(QString)), this,
+          SIGNAL (logMessage(QString)));
+  connect(&parser, SIGNAL (logMessage(QString)), this,
+          SIGNAL (logMessage(QString)));
+
   // Info message:
   logger.info("Server configured in port " + to_string(port_number) + ".");
 
@@ -64,7 +70,6 @@ int Server::init() {
 
 void Server::open_gate() {
   gate_closed = false;
-  emit gate_opened();
 }
 
 void Server::run() {
@@ -146,6 +151,9 @@ int Server::await_gate() {
       break;
   }
 
+  // Signal that the gate actually opened:
+  emit gate_opened();
+
   // Decide next state based on the last read connection:
   switch(last_read) {
 
@@ -167,7 +175,6 @@ int Server::await_gate() {
 }
 
 int Server::connect_to_website(connection *client, connection *website){
-    HTTPParser parser;
     struct hostent *website_IP_data;
 
     if((website->fd = socket(AF_INET, SOCK_STREAM, 0)) == 0){
@@ -265,7 +272,6 @@ int Server::read_from_client(connection *client) {
 
 int Server::read_from_website(connection *website){
 
-    HTTPParser parser;
     int length;
     size_t max_size = HTTP_BUFFER_SIZE;
     ssize_t single_read;

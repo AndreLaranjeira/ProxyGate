@@ -74,6 +74,7 @@ class Server : public QObject {
     void errorMessage(QString);
     void finished();
     void gate_opened();
+    void logMessage(QString);
     void website_request(QString req);
 
   private:
@@ -85,6 +86,7 @@ class Server : public QObject {
     int server_fd;
 
     // Classes and custom types:
+    HTTPParser parser;
     MessageLogger logger;
     ServerConnections last_read;
     ServerTask next_task;

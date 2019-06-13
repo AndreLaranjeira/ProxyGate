@@ -35,7 +35,7 @@ int MainWindow::start_server() {
   server = new Server(server_port());
   server_t = new QThread;
 
-  connect(server, SIGNAL(errorMessage(QString)), this, SLOT(logMessage(QString)));
+  //connect(server, SIGNAL(errorMessage(QString)), this, SLOT(logMessage(QString)));
 
   if(server->init() == 0) {
     server->moveToThread(server_t);
@@ -54,10 +54,10 @@ int MainWindow::start_server() {
 
 }
 
-void MainWindow::logMessage(QString message) {
-  QTextEdit *t = this->findChild<QTextEdit*>("logTextEdit");
-  t->append(message);
-}
+//void MainWindow::logMessage(QString message) {
+//  QTextEdit *t = this->findChild<QTextEdit*>("logTextEdit");
+//  t->append(message);
+//}
 
 // Private methods:
 in_port_t MainWindow::server_port() {
@@ -96,6 +96,10 @@ void MainWindow::config_server_thread() {
 
   // If there is an error, signal the Main Window:
   //connect(server, SIGNAL (error(QString)), this, SLOT (errorString(QString)));
+
+  // Configure server message logger:
+  connect(server, SIGNAL (logMessage(QString)), ui->logTextEdit,
+          SLOT (append(QString)));
 
   // Configure the client request to be displayed:
   connect(server, SIGNAL (client_request(QString)), ui->text_client,

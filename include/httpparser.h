@@ -5,6 +5,7 @@
 #include <QList>
 #include <iostream>
 #include <QHash>
+#include <QObject>
 
 #include "include/message_logger.h"
 #define HTTP_BUFFER_SIZE 1048576
@@ -25,7 +26,9 @@ typedef struct HeaderBodyPair {
 typedef QHash<QString,QList<QString>> Headers;
 
 // HTTPParser class that implements parser for HTTP requests
-class HTTPParser {
+class HTTPParser : public QObject {
+    Q_OBJECT
+
     private:
         // Private variables
         QString method;
@@ -48,9 +51,11 @@ class HTTPParser {
         bool parseAnswerLine(QString);
         bool parseHeaderLine(QString);
         bool parse(char *, ssize_t);
+
     public:
         // Constructor
         HTTPParser();
+        ~HTTPParser();
 
         // Getters
         QString getMethod();
@@ -71,6 +76,10 @@ class HTTPParser {
 
         // Converts parsed HTTP to QString
         QString toQString();
+
+    signals:
+        void logMessage(QString);
+
 };
 
 #endif // HTTPPARSER_H
