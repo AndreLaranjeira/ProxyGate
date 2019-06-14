@@ -12,6 +12,19 @@
 #include "include/message_logger.h"
 #include "include/httpparser.h"
 
+#define SPIDER_TREE_DEPTH 3
+
+class SpiderTree {
+    private:
+        list<SpiderTree> nodes;
+        QString link;
+        QString pp(int);
+    public:
+        SpiderTree(QString);
+        void appendNode(SpiderTree);
+        QString prettyPrint();
+};
+
 class Spider : public QObject {
 
     Q_OBJECT
@@ -21,11 +34,12 @@ class Spider : public QObject {
 
 
     int get(QString, QString *ret);
-    int connect(QString, int *);
+    int con(QString, int *);
     QStringList extract_links(QString);
     QString getAbsoluteLink(QString, QString);
     QString getURL(QString);
     QString getHost(QString);
+    SpiderTree buildSpiderTree(QString, int, QStringList *);
 
     public:
         Spider();
@@ -33,7 +47,9 @@ class Spider : public QObject {
     public slots:
         void execute(QString);
 
-
+    signals:
+        void updateSpiderTree(QString);
+        void updateLog(QString);
 
 };
 

@@ -20,7 +20,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),
   spider->moveToThread(spider_t);
 
   connect(this, SIGNAL(start_spider(QString)), spider, SLOT(execute(QString)));
-
+  connect(spider, SIGNAL(updateSpiderTree(QString)), ui->spider_tree, SLOT(setText(QString)));
+  connect(spider, SIGNAL(updateLog(QString)), ui->spider_log, SLOT(append(QString)));
   spider_t->start();
 
 }

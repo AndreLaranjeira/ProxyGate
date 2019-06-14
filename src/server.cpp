@@ -9,7 +9,7 @@ Server::Server(in_port_t port_number) : port_number(port_number), logger("Server
   // Connect message loggers:
   connect(&logger, SIGNAL (sendMessage(QString)), this,
           SIGNAL (logMessage(QString)));
-  connect(&parser, SIGNAL (logMessage(QString)), this,
+  connect(&parser, SIGNAL (sendMessage(QString)), this,
           SIGNAL (logMessage(QString)));
 
   // Info message:
