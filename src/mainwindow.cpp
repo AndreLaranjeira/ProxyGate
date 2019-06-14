@@ -13,6 +13,16 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),
   // Functionality configuration:
   start_server();
 
+  // Configure spider
+  spider = new Spider;
+  spider_t = new QThread;
+
+  spider->moveToThread(spider_t);
+
+  connect(this, SIGNAL(start_spider(QString)), spider, SLOT(execute(QString)));
+
+  spider_t->start();
+
 }
 
 MainWindow::~MainWindow() {
@@ -129,3 +139,8 @@ void MainWindow::config_server_thread() {
 void MainWindow::on_button_gate_clicked() {
   server->open_gate();
 }
+
+void MainWindow::on_spider_push_clicked() {
+  emit start_spider(ui->spider_host->text());
+}
+
