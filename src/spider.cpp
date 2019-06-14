@@ -3,19 +3,58 @@
 Spider::Spider() : logger("Spider"){
 }
 
-void Spider::execute(QString host){
+void Spider::execute(QString link){
     QString request;
-    logger.info("Entered spider, host: " + host.toStdString());
+    QStringList links;
+    logger.info("Entered spider, host: " + link.toStdString());
 
-    if((get(host, &request)) < 0){
+    if((get(link, &request)) < 0){
         logger.error("Unable to GET from website");
         return;
     }
 
-    logger.info(request.toStdString());
+    links = extract_links(request);
 
-    // Now extract links
+    for(auto it = links.begin() ; it != links.end() ; ++it){
+        logger.info(getAbsoluteLink((*it), getHost(link)).toStdString());
+    }
 
+}
+
+QString Spider::getAbsoluteLink(QString link, QString host){
+    QRegExp re("^http://(.*)");
+    if(re.indexIn(link) == 0) return re.cap(1);
+    else {
+        if(link[0] == '/') return host + link;
+        else return host + "/" + link;
+    }
+}
+
+QString Spider::getURL(QString link){
+    QRegExp re("(?:http:\\/\\/)?(?:[^/]*\\/*)?(.*)");
+    if(re.indexIn(link) == 0) {
+        if(re.cap(1).contains(".")) return "/";
+        else return re.cap(1);
+    }
+    else return link;
+}
+
+QString Spider::getHost(QString link){
+    QRegExp re("(?:http:\\/\\/)?(?:([^/]*)\\/*)?.*");
+    if(re.indexIn(link) == 0) return re.cap(1);
+    else return link;
+}
+
+QStringList Spider::extract_links(QString request){
+    QStringList links;
+    QRegularExpression re("href=[\"|']([^\"']*)[\"']");
+    QRegularExpressionMatchIterator match = re.globalMatch(request);
+    while(match.hasNext()){
+        QString link = match.next().captured(1);
+        if(!links.contains(link))
+            links << link;
+    }
+    return links;
 }
 
 int Spider::connect(QString host, int *website_fd){
@@ -59,7 +98,7 @@ int Spider::connect(QString host, int *website_fd){
     return 0;
 }
 
-int Spider::get(QString host, QString *ret){
+int Spider::get(QString link, QString *ret){
     size_t max_size = HTTP_BUFFER_SIZE;
     ssize_t single_read;
     ssize_t size_read;
@@ -70,13 +109,13 @@ int Spider::get(QString host, QString *ret){
     HTTPParser finalParser;
 
     // Try to connect
-    if((connect(host, &website_fd)) < 0){
+    if((connect(getHost(link), &website_fd)) < 0){
         logger.error("Could not connect to website");
         return -1;
     }
 
     // Send GET request
-    QString toSend = "GET / HTTP/1.1\r\nHost: " + host + "\r\nConnection: close\r\n\r\n";
+    QString toSend = "GET " + getURL(link) + " HTTP/1.1\r\nHost: " + getHost(link) + "\r\nConnection: close\r\n\r\n";
     if((send(website_fd, toSend.toStdString().c_str(), static_cast<size_t>(toSend.size()), 0)) == -1){
         logger.error("Error while sending spider GET");
         close(website_fd);

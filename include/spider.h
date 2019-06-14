@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <QObject>
+#include <QRegularExpression>
 
 #include "include/socket.h"
 #include "include/message_logger.h"
@@ -21,6 +22,10 @@ class Spider : public QObject {
 
     int get(QString, QString *ret);
     int connect(QString, int *);
+    QStringList extract_links(QString);
+    QString getAbsoluteLink(QString, QString);
+    QString getURL(QString);
+    QString getHost(QString);
 
     public:
         Spider();
