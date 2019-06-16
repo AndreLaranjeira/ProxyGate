@@ -68,8 +68,22 @@ int Server::init() {
 
 }
 
+void Server::load_client_request(QString new_request) {
+  string aux = new_request.toStdString();
+  adjust_line_endings(&aux);
+  strcpy(new_client_request.content, aux.c_str());
+  new_client_request.size = static_cast<ssize_t>(aux.size());
+}
+
+void Server::load_website_request(QString new_request) {
+  string aux = new_request.toStdString();
+  adjust_line_endings(&aux);
+  strcpy(new_website_request.content, aux.c_str());
+  new_website_request.size = static_cast<ssize_t>(aux.size());
+}
+
 void Server::open_gate() {
-  gate_closed = false;
+  set_gate_closed(false);
 }
 
 void Server::run() {
@@ -82,11 +96,11 @@ void Server::run() {
   config_website_addr(&(website.addr));
 
   // Set control variables:
-  gate_closed = true;
-  running = true;
+  set_gate_closed(true);
+  set_running(true);
   next_task = AWAIT_CONNECTION;
 
-  while(running)
+  while(is_program_running())
     if(execute_task(next_task, &client, &website) != 0)
       runtime_errors++;
 
@@ -103,7 +117,7 @@ void Server::stop() {
   close_socket(server_fd);
 
   // Set a control variable
-  running = false;
+  set_running(false);
 
   // Notify user:
   logger.info("Stop signal received. Shutting down!");
@@ -111,6 +125,22 @@ void Server::stop() {
 }
 
 // Private methods:
+bool Server::is_gate_closed() {
+  bool aux;
+  gate_mutex.lock();
+  aux = gate_closed;
+  gate_mutex.unlock();
+  return aux;
+}
+
+bool Server::is_program_running() {
+  bool aux;
+  run_mutex.lock();
+  aux = running;
+  run_mutex.unlock();
+  return aux;
+}
+
 int Server::await_connection(connection *client) {
 
   int addrlen = sizeof(client->addr), client_fd;
@@ -129,7 +159,7 @@ int Server::await_connection(connection *client) {
     return 0;
   }
 
-  else if(!running) {
+  else if(!is_program_running()) {
     close_socket(client_fd);
     return 0;
   }
@@ -146,29 +176,16 @@ int Server::await_gate() {
   logger.info("Awaiting for gate to open!");
 
   // Wait for the gate to open or for the program to finish:
-  while(gate_closed) {
-    if(running == false)
-      break;
-  }
+  while(is_gate_closed() and is_program_running()) {}
 
   // Signal that the gate actually opened:
-  emit gate_opened();
+  emit gateOpened();
 
-  // Decide next state based on the last read connection:
-  switch(last_read) {
-
-    case CLIENT:
-      next_task = CONNECT_TO_WEBSITE;
-      break;
-
-    case WEBSITE:
-      next_task = SEND_TO_CLIENT;
-      break;
-
-  }
+  // Set the next task:
+  next_task = UPDATE_REQUESTS;
 
   // Close the gates again:
-  gate_closed = true;
+  set_gate_closed(true);
 
   return 0;
 
@@ -240,6 +257,9 @@ int Server::execute_task(ServerTask task, connection *client,
     case SEND_TO_WEBSITE:
       return_code = send_to_website(client, website);
       break;
+    case UPDATE_REQUESTS:
+      return_code = update_requests(client, website);
+      break;
   }
 
   // In case an error occurred:
@@ -256,7 +276,7 @@ int Server::read_from_client(connection *client) {
 
   // Client sent data:
   if((client->buffer_size = read_socket(client->fd, client->buffer, HTTP_BUFFER_SIZE)) > 0) {
-    emit client_request(QString(client->buffer));
+    emit clientRequest(QString(client->buffer));
     last_read = CLIENT;
     next_task = AWAIT_GATE;
     return 0;
@@ -328,7 +348,7 @@ int Server::read_from_website(connection *website){
     website->buffer_size = size_read;
     close(website->fd);
 
-    emit website_request(QString(website->buffer));
+    emit websiteRequest(QString(website->buffer));
     last_read = WEBSITE;
     next_task = AWAIT_GATE;
     return 0;
@@ -364,6 +384,101 @@ int Server::send_to_website(connection *client, connection *website){
     next_task = READ_FROM_WEBSITE;
     return 0;
 
+}
+
+int Server::update_requests(connection *client, connection *website){
+
+  // Check which request we should update:
+  switch(last_read) {
+
+    case CLIENT:
+
+      // If there were no edits, continue:
+      if(strcmp(new_client_request.content, client->buffer) == 0) {
+        next_task = CONNECT_TO_WEBSITE;
+        logger.info("Client request unchanged!");
+      }
+
+      // If there were edits, we might need to overwrite the connection buffer:
+      else {
+
+        // If the new request is valid, overwrite the buffer:
+        if (parser.parseRequest(new_client_request.content,
+                                new_client_request.size)) {
+          strcpy(client->buffer, new_client_request.content);
+          client->buffer_size = new_client_request.size;
+          next_task = CONNECT_TO_WEBSITE;
+          logger.info("Edited client request!");
+        }
+
+        // Else, go back to the gate with the old request:
+        else {
+          emit clientRequest(QString(client->buffer));
+          logger.error("Invalid client request entered! Try again!");
+          next_task = AWAIT_GATE;
+        }
+
+      }
+
+      break;
+
+    case WEBSITE:
+
+      // If there were no edits, continue:
+      if(strcmp(new_website_request.content, website->buffer) == 0) {
+        next_task = SEND_TO_CLIENT;
+        logger.info("Website request unchanged!");
+      }
+
+      // If there were edits, we might need to overwrite the connection buffer:
+      else {
+
+        // If the new request is valid, overwrite the buffer:
+        if (parser.parseRequest(new_website_request.content,
+                                new_website_request.size)) {
+
+          strcpy(website->buffer, new_website_request.content);
+          website->buffer_size = new_website_request.size;
+          logger.info("Edited website request!");
+          next_task = SEND_TO_CLIENT;
+        }
+
+        // Else, go back to the gate with the old request:
+        else {
+          emit websiteRequest(QString(website->buffer));
+          logger.error("Invalid client request entered! Try again!");
+          next_task = AWAIT_GATE;
+        }
+
+      }
+
+      break;
+
+  }
+
+  return 0;
+
+}
+
+void Server::adjust_line_endings(string *input) {
+  size_t pos = 0, header_end;
+
+  // Find the end of the header line:
+  header_end = (*input).find("\n\n", 0);
+
+  // Find an '\n' to replace:
+  while ((pos = (*input).find("\n", pos)) != std::string::npos) {
+
+    // If we find a '\n\n', we got to the header's end! Replace and leave:
+    if(pos == header_end) {
+      (*input).replace(pos, 2, "\r\n\r\n");
+      break;
+    }
+
+    // Else, just replace the '\n':
+    (*input).replace(pos, 1, "\r\n");
+    pos += 2;
+  }
 }
 
 void Server::config_client_addr(struct sockaddr_in *client_addr) {
@@ -402,6 +517,20 @@ void Server::handle_error(ServerTask task, int client_fd, int website_fd) {
       close(client_fd);
       close(website_fd);
       break;
+    case UPDATE_REQUESTS:
+      return;
   }
 
+}
+
+void Server::set_gate_closed(bool value) {
+  gate_mutex.lock();
+  gate_closed = value;
+  gate_mutex.unlock();
+}
+
+void Server::set_running(bool value) {
+  run_mutex.lock();
+  running = value;
+  run_mutex.unlock();
 }

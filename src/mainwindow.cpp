@@ -6,9 +6,14 @@
 
 // Class methods:
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),
-                                          ui(new Ui::MainWindow) {
+                                          ui(new Ui::MainWindow),
+                                          logger("Main window") {
   // UI configuration:
   ui->setupUi(this);
+
+  // Logger configuration:
+  connect(&logger, SIGNAL (sendMessage(QString)), ui->logTextEdit,
+          SLOT (append(QString)));
 
   // Functionality configuration:
   start_server();
@@ -25,7 +30,7 @@ MainWindow::~MainWindow() {
     server->stop();     // Stop the server. Signals and slots handle the rest!
 
   // Success message:
-  //logger.success("Exited application!");
+  logger.success("Exited application!");
 
 }
 
@@ -44,7 +49,7 @@ int MainWindow::start_server() {
   }
 
   else {
-    //logger.error("Failed to initialize server!");
+    logger.error("Failed to initialize server!");
     server->deleteLater();
     server_t->deleteLater();
     return -1;
@@ -53,11 +58,6 @@ int MainWindow::start_server() {
   return 0;
 
 }
-
-//void MainWindow::logMessage(QString message) {
-//  QTextEdit *t = this->findChild<QTextEdit*>("logTextEdit");
-//  t->append(message);
-//}
 
 // Private methods:
 in_port_t MainWindow::server_port() {
@@ -77,7 +77,7 @@ in_port_t MainWindow::server_port() {
     // Invalid port number:
     else {
       port_num = DEFAULT_PORT;
-      //logger.warning("Invalid port number argument! Using default port " + to_string(DEFAULT_PORT) + " instead.");
+      logger.warning("Invalid port number argument! Using default port " + to_string(DEFAULT_PORT) + " instead.");
     }
 
   }
@@ -94,24 +94,21 @@ void MainWindow::config_server_thread() {
 
   // Configure server thread signals and slots:
 
-  // If there is an error, signal the Main Window:
-  //connect(server, SIGNAL (error(QString)), this, SLOT (errorString(QString)));
-
   // Configure server message logger:
   connect(server, SIGNAL (logMessage(QString)), ui->logTextEdit,
           SLOT (append(QString)));
 
   // Configure the client request to be displayed:
-  connect(server, SIGNAL (client_request(QString)), ui->text_client,
+  connect(server, SIGNAL (clientRequest(QString)), ui->text_client,
           SLOT (setPlainText(QString)));
 
   // Configure the website request to be displayed:
-  connect(server, SIGNAL (website_request(QString)), ui->text_website,
+  connect(server, SIGNAL (websiteRequest(QString)), ui->text_website,
           SLOT (setPlainText(QString)));
 
   // Configure the gate to erase both requests displayed in text boxes:
-  connect(server, SIGNAL (gate_opened()), ui->text_client, SLOT (clear()));
-  connect(server, SIGNAL (gate_opened()), ui->text_website, SLOT (clear()));
+  connect(server, SIGNAL (gateOpened()), ui->text_client, SLOT (clear()));
+  connect(server, SIGNAL (gateOpened()), ui->text_website, SLOT (clear()));
 
   // The server thread should start the server:
   connect(server_t, SIGNAL (started()), server, SLOT (run()));
@@ -126,6 +123,9 @@ void MainWindow::config_server_thread() {
   connect(server_t, SIGNAL (finished()), server_t, SLOT (deleteLater()));
 }
 
+// Private slots:
 void MainWindow::on_button_gate_clicked() {
+  server->load_client_request(ui->text_client->toPlainText());
+  server->load_website_request(ui->text_website->toPlainText());
   server->open_gate();
 }

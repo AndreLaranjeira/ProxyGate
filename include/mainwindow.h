@@ -11,7 +11,7 @@
 #include <QTextEdit>
 
 // User includes:
-//#include "include/message_logger.h"
+#include "include/message_logger.h"
 #include "include/server.h"
 
 // Namespace:
@@ -31,16 +31,13 @@ class MainWindow : public QMainWindow {
     // Methods:
     int start_server();
 
-  public slots:
-    //void logMessage(QString);
-
   private slots:
     void on_button_gate_clicked();
 
   private:
     // Classes:
     Ui::MainWindow *ui;
-    //MessageLogger logger;
+    MessageLogger logger;
     QThread *server_t;
     Server *server;
 
