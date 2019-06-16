@@ -65,7 +65,7 @@ class HTTPParser : public QObject {
         QString getCode();
         QString getDescription();
         char *getData();
-        ssize_t getDataSize();
+        size_t getDataSize();
         Headers getHeaders();
 
         // Parser
@@ -74,8 +74,8 @@ class HTTPParser : public QObject {
         // PrettyPrinter method
         void prettyPrinter();
 
-        // Converts parsed HTTP to QString
-        QString toQString();
+        // Converts parsed HTTP headers to QString
+        QString headerToQstring();
 
     signals:
         void logMessage(QString);

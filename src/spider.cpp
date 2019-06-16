@@ -30,7 +30,7 @@ QString SpiderTree::prettyPrint(){
     return this->pp(0);
 }
 
-QString SpiderTree::pp(int level){
+QString SpiderTree::pp(unsigned int level){
     QString str;
     if(level == 0) str += "LINK: " + this->link + "\n";
     else {
@@ -226,9 +226,9 @@ int Spider::get(QString link, QString *ret){
     finalParser.parseRequest(buffer, size_read);
 
     char *data = finalParser.getData();
-    ssize_t size = finalParser.getDataSize();
-    data[size] = '\0';
-    *ret = QString(data);
+    size_t size = finalParser.getDataSize();
+
+    *ret = QString::fromStdString(std::string(data, size));
 
     close(website_fd);
 

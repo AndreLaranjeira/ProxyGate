@@ -206,7 +206,7 @@ char *HTTPParser::getData(){
 }
 
 // Getter for data
-ssize_t HTTPParser::getDataSize(){
+size_t HTTPParser::getDataSize(){
     return this->splitted.body_size;
 }
 
@@ -242,8 +242,8 @@ void HTTPParser::prettyPrinter(){
     cout << endl;
 }
 
-// Converts HTTPParser object into a QString request
-QString HTTPParser::toQString(){
+// Converts header of HTTPParser object into a QString
+QString HTTPParser::headerToQstring(){
     QString ret;
     QHashIterator<QString,QList<QString>> i(this->getHeaders());
 
@@ -260,9 +260,6 @@ QString HTTPParser::toQString(){
 
     // Renders empty line
     ret += "\r\n";
-
-    // Renders data
-    ret += this->getData();
 
     return ret;
 }

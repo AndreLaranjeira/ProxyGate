@@ -18,7 +18,7 @@ class SpiderTree {
     private:
         list<SpiderTree> nodes;
         QString link;
-        QString pp(int);
+        QString pp(unsigned int);
     public:
         SpiderTree(QString);
         void appendNode(SpiderTree);
