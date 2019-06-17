@@ -12,17 +12,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),
 
   // Functionality configuration:
   start_server();
-
-  // Configure spider
-  spider = new Spider;
-  spider_t = new QThread;
-
-  spider->moveToThread(spider_t);
-
-  connect(this, SIGNAL(start_spider(QString)), spider, SLOT(execute(QString)));
-  connect(spider, SIGNAL(updateSpiderTree(QString)), ui->spider_tree, SLOT(setText(QString)));
-  connect(spider, SIGNAL(updateLog(QString)), ui->spider_log, SLOT(append(QString)));
-  spider_t->start();
+  start_tools();
 
 }
 
@@ -43,17 +33,18 @@ MainWindow::~MainWindow() {
 // Public methods:
 int MainWindow::start_server() {
 
-  server = new Server(server_port());
+  // Initialize classes:
   server_t = new QThread;
+  server = new Server(server_port());
 
-  //connect(server, SIGNAL(errorMessage(QString)), this, SLOT(logMessage(QString)));
-
+  // If the server initializes, start the thread:
   if(server->init() == 0) {
     server->moveToThread(server_t);
     config_server_thread();
     server_t->start();
   }
 
+  // Else, schedule the thread and the server for deletion:
   else {
     //logger.error("Failed to initialize server!");
     server->deleteLater();
@@ -62,6 +53,21 @@ int MainWindow::start_server() {
   }
 
   return 0;
+
+}
+
+void MainWindow::start_tools() {
+
+  // Initialize classes:
+  tools_t = new QThread;
+  spider = new Spider;
+
+  // Move classes to the thread:
+  spider->moveToThread(tools_t);
+
+  // Start the thread:
+  config_tools_thread();
+  tools_t->start();
 
 }
 
@@ -135,6 +141,26 @@ void MainWindow::config_server_thread() {
 
   // When the server thread finishes, schedule the server thread for deletion:
   connect(server_t, SIGNAL (finished()), server_t, SLOT (deleteLater()));
+
+}
+
+void MainWindow::config_tools_thread() {
+
+  // Configure spider thread to run when user clicks the button:
+  connect(this, SIGNAL(start_spider(QString)), spider, SLOT(execute(QString)));
+
+  // Configure spider logger:
+  connect(spider, SIGNAL(updateLog(QString)), ui->spider_log, SLOT(append(QString)));
+
+  // Configure the spider output to be displayed:
+  connect(spider, SIGNAL(updateSpiderTree(QString)), ui->spider_tree, SLOT(setText(QString)));
+
+  // When the tools thread finishes, schedule the spider object for deletion:
+  connect(tools_t, SIGNAL (finished()), spider, SLOT (deleteLater()));
+
+  // When the tools thread finishes, schedule the tools thread for deletion:
+  connect(tools_t, SIGNAL (finished()), tools_t, SLOT (deleteLater()));
+
 }
 
 void MainWindow::on_button_gate_clicked() {

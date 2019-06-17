@@ -9,7 +9,7 @@ Server::Server(in_port_t port_number) : port_number(port_number), logger("Server
   // Connect message loggers:
   connect(&logger, SIGNAL (sendMessage(QString)), this,
           SIGNAL (logMessage(QString)));
-  connect(&parser, SIGNAL (sendMessage(QString)), this,
+  connect(&parser, SIGNAL (logMessage(QString)), this,
           SIGNAL (logMessage(QString)));
 
   // Info message:
@@ -59,8 +59,6 @@ int Server::init() {
 
   // And there we go! This should make the server ready to begin accepting
   // requests. Just call Server::run() to begin.
-
-  emit errorMessage("Server initialized!");
 
   logger.success("Server initialized!");
 
