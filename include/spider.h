@@ -39,7 +39,7 @@ class Spider : public QObject {
     QString getAbsoluteLink(QString, QString);
     QString getURL(QString);
     QString getHost(QString);
-    SpiderTree buildSpiderTree(QString, int, QStringList *);
+    SpiderTree buildSpiderTree(QString, QString, int, QStringList *);
 
     public:
         Spider();
