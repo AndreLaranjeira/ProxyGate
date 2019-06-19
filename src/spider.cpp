@@ -13,7 +13,7 @@ void Spider::execute(QString link){
 
     logger.info("Entered spider");
 
-    SpiderTree tree = buildSpiderTree(link, SPIDER_TREE_DEPTH, &links);
+    SpiderTree tree = buildSpiderTree(link, getHost(link), SPIDER_TREE_DEPTH, &links);
 
     emit updateSpiderTree(tree.prettyPrint());
 
@@ -42,7 +42,7 @@ QString SpiderTree::pp(unsigned int level){
     return str;
 }
 
-SpiderTree Spider::buildSpiderTree(QString link, int depth, QStringList *globalLinks){
+SpiderTree Spider::buildSpiderTree(QString link, QString host, int depth, QStringList *globalLinks){
     QString request;
     QStringList links;
     QString absoluteLink = getAbsoluteLink(link, getHost(link));
@@ -50,7 +50,7 @@ SpiderTree Spider::buildSpiderTree(QString link, int depth, QStringList *globalL
 
     globalLinks->push_back(absoluteLink);
 
-    logger.info("Entered SpiderTree builder, link: " + absoluteLink.toStdString());
+    logger.info("Entered SpiderTree builder, absolute link: " + absoluteLink.toStdString());
 
     if(depth == 0) return tree;
 
@@ -63,8 +63,8 @@ SpiderTree Spider::buildSpiderTree(QString link, int depth, QStringList *globalL
 
     for(auto it = links.begin() ; it != links.end() ; ++it){
         QString absoluteLink = getAbsoluteLink((*it), getHost(link));
-        if(!globalLinks->contains(absoluteLink)){
-            SpiderTree node = buildSpiderTree(absoluteLink, depth-1, globalLinks);
+        if(!globalLinks->contains(absoluteLink) && getHost(absoluteLink) == host){
+            SpiderTree node = buildSpiderTree(absoluteLink, host, depth-1, globalLinks);
             tree.appendNode(node);
         }
     }
@@ -83,16 +83,16 @@ QString Spider::getAbsoluteLink(QString link, QString host){
 }
 
 QString Spider::getURL(QString link){
-    QRegExp re("(?:http(?:s)?:\\/\\/)?(?:[^\\/]*)?\\/+(.*)");
-    if(re.indexIn(link) == 0) {
-        return re.cap(1);
-    }
-    else return "";
+    QRegularExpression re("(?:https?://)?(?:[^/]*)/*(.*)");
+    QRegularExpressionMatch match = re.match(link);
+    if(match.hasMatch()) return match.captured(1);
+    else return link;
 }
 
 QString Spider::getHost(QString link){
-    QRegExp re("(?:http(?:s)?:\\/\\/)?(?:([^/]*)\\/*)?.*");
-    if(re.indexIn(link) == 0) return re.cap(1);
+    QRegularExpression re("(?:https?://)?([^/]*)/*(?:.*)");
+    QRegularExpressionMatch match = re.match(link);
+    if(match.hasMatch()) return match.captured(1);
     else return link;
 }
 
