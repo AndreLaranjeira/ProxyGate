@@ -13,6 +13,7 @@
 // User includes:
 #include "include/message_logger.h"
 #include "include/server.h"
+#include "include/spider.h"
 
 // Namespace:
 namespace Ui {
@@ -30,9 +31,14 @@ class MainWindow : public QMainWindow {
 
     // Methods:
     int start_server();
+    void start_tools();
 
   private slots:
     void on_button_gate_clicked();
+    void on_spider_push_clicked();
+
+  signals:
+    void start_spider(QString);
 
   private:
     // Classes:
@@ -41,9 +47,13 @@ class MainWindow : public QMainWindow {
     QThread *server_t;
     Server *server;
 
+    QThread *tools_t;
+    Spider *spider;
+
     // Methods:
     in_port_t server_port();
     void config_server_thread();
+    void config_tools_thread();
 
 };
 

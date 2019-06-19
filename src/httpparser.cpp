@@ -11,26 +11,29 @@ HTTPParser::~HTTPParser() {
 }
 
 // Gets raw request and returns HeaderBodyPair which splits header part (text) from body (can be binary)
-HeaderBodyPair HTTPParser::splitRequest(char *request, ssize_t size){
+HeaderBodyPair HTTPParser::splitRequest(char *request, size_t size){
     HeaderBodyPair ret;
-    ssize_t i;
-    char tmp;
-    if(size < 4){
-        ret.body_size = 0;
-        return ret;
-    }
-    for (i = 0; i+4 < size ; i++) {
-        if(request[i+1] == '\r' && request[i+2] == '\n' && request[i+3] == '\r' && request[i+4] == '\n')
-            break;
-    }
-    tmp = request[i+1];
-    request[i+1] = '\0';
-    ret.header = QString(request);
-    request[i+1] = tmp;
+    unsigned int headerEnd;
 
-    ret.body_size = size-i-5;
-    memcpy(ret.body, request+i+5, (size_t)(size-i-5));
+    ret.body_size = 0;
+
+    for(headerEnd = 0 ; headerEnd + 3 < size ; headerEnd++ ){
+        if(request[headerEnd]   == '\r' &&
+           request[headerEnd+1] == '\n' &&
+           request[headerEnd+2] == '\r' &&
+           request[headerEnd+3] == '\n')
+        break;
+    }
+
+    ret.header = QString::fromStdString(std::string(request, headerEnd));
+
+    if(size > headerEnd + 4){
+        ret.body_size = size - headerEnd - 4;
+        memcpy(&(ret.body), &(request[headerEnd+4]), ret.body_size);
+    }
+
     return ret;
+
 }
 
 // Private method that receives a request and parses it
@@ -47,7 +50,7 @@ bool HTTPParser::parse(char *request, ssize_t size){
     state = COMMANDLINE;
 
     // Split text part of body part
-    this->splitted = splitRequest(request, size);
+    this->splitted = splitRequest(request, static_cast<size_t>(size));
 
     // Split in \r\n
     lines = splitted.header.split(QRegExp("\r\n"));
@@ -203,7 +206,7 @@ char *HTTPParser::getData(){
 }
 
 // Getter for data
-ssize_t HTTPParser::getDataSize(){
+size_t HTTPParser::getDataSize(){
     return this->splitted.body_size;
 }
 
@@ -239,8 +242,8 @@ void HTTPParser::prettyPrinter(){
     cout << endl;
 }
 
-// Converts HTTPParser object into a QString request
-QString HTTPParser::toQString(){
+// Converts header of HTTPParser object into a QString
+QString HTTPParser::headerToQstring(){
     QString ret;
     QHashIterator<QString,QList<QString>> i(this->getHeaders());
 
@@ -257,9 +260,6 @@ QString HTTPParser::toQString(){
 
     // Renders empty line
     ret += "\r\n";
-
-    // Renders data
-    ret += this->getData();
 
     return ret;
 }

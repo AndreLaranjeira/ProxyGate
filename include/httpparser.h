@@ -19,7 +19,7 @@ typedef enum {
 typedef struct HeaderBodyPair {
     QString header;
     char body[HTTP_BUFFER_SIZE+1];
-    ssize_t body_size;
+    size_t body_size;
 } HeaderBodyPair;
 
 // Typedef to abstract Headers hash
@@ -46,7 +46,7 @@ class HTTPParser : public QObject {
         MessageLogger logger;
 
         // Private aux methods for parsing
-        HeaderBodyPair splitRequest(char *, ssize_t);
+        HeaderBodyPair splitRequest(char *, size_t);
         bool parseCommandLine(QString);
         bool parseAnswerLine(QString);
         bool parseHeaderLine(QString);
@@ -65,7 +65,7 @@ class HTTPParser : public QObject {
         QString getCode();
         QString getDescription();
         char *getData();
-        ssize_t getDataSize();
+        size_t getDataSize();
         Headers getHeaders();
 
         // Parser
@@ -74,8 +74,8 @@ class HTTPParser : public QObject {
         // PrettyPrinter method
         void prettyPrinter();
 
-        // Converts parsed HTTP to QString
-        QString toQString();
+        // Converts parsed HTTP headers to QString
+        QString headerToQstring();
 
     signals:
         void logMessage(QString);
