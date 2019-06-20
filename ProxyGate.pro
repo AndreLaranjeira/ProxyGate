@@ -31,14 +31,16 @@ SOURCES += \
         src/mainwindow.cpp \
         src/message_logger.cpp \
         src/server.cpp \
-        src/socket.cpp
+        src/socket.cpp \
+    src/spider.cpp
 
 HEADERS += \
         include/httpparser.h \
         include/mainwindow.h \
         include/message_logger.h \
         include/server.h \
-        include/socket.h
+        include/socket.h \
+    include/spider.h
 
 FORMS += \
         form/mainwindow.ui

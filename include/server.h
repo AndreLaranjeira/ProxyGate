@@ -71,7 +71,6 @@ class Server : public QObject {
   signals:
     void client_request(QString req);
     void error(QString err);
-    void errorMessage(QString);
     void finished();
     void gate_opened();
     void logMessage(QString);
