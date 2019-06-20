@@ -90,11 +90,11 @@ bool HTTPParser::parse(char *request, ssize_t size){
 }
 
 inline bool HTTPParser::validRequestHeaderLine(QString line){
-    return parseCommandLine(line, nullptr, nullptr, nullptr) || parseHeaderLine(line, nullptr, nullptr);
+    return parseCommandLine(line, nullptr, nullptr, nullptr) && parseHeaderLine(line, nullptr, nullptr);
 }
 
 inline bool HTTPParser::validAnswerHeaderLine(QString line){
-    return parseAnswerLine(line, nullptr, nullptr, nullptr) || parseHeaderLine(line, nullptr, nullptr);
+    return parseAnswerLine(line, nullptr, nullptr, nullptr) && parseHeaderLine(line, nullptr, nullptr);
 }
 
 bool HTTPParser::parseCommandLine(QString line, QString *method, QString *url, QString *version){
@@ -127,10 +127,7 @@ bool HTTPParser::parseCommandLine(QString line, QString *method, QString *url, Q
 // Returns false if could not match with expected expression
 bool HTTPParser::parseCL(QString line){
     // Parse command line and set private variables
-    if(!parseCommandLine(line, &this->method, &this->url, &this->version))
-        return false;
-
-    return true;
+    return parseCommandLine(line, &this->method, &this->url, &this->version);
 }
 
 bool HTTPParser::parseAnswerLine(QString line, QString *version, QString *code, QString *description){
@@ -163,12 +160,8 @@ bool HTTPParser::parseAnswerLine(QString line, QString *version, QString *code, 
 // It alters private members of class
 // Returns false if could not match with expected expression
 bool HTTPParser::parseAL(QString line){
-
     // Parsers answer line and set private variables
-    if(!parseAnswerLine(line, &this->version, &this->code, &this->description))
-        return false;
-
-    return true;
+    return parseAnswerLine(line, &this->version, &this->code, &this->description);
 }
 
 // This method parsers a header line of a HTTP request
