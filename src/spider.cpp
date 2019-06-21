@@ -42,13 +42,27 @@ QString SpiderTree::pp(unsigned int level){
     return str;
 }
 
+QString Spider::removeWWW(QString link){
+    QRegularExpression re("(?:www.)?(.*)");
+    QRegularExpressionMatch match = re.match(link);
+    if(match.hasMatch()) {
+        //logger.info(link.toStdString() + " -> " + match.captured(1).toStdString());
+        return match.captured(1);
+    }
+    else return "";
+}
+
+bool Spider::sameHost(QString host, QString absoluteLink){
+    return removeWWW(host) == getHost(removeWWW(absoluteLink));
+}
+
 SpiderTree Spider::buildSpiderTree(QString link, QString host, int depth, QStringList *globalLinks){
     QString request;
     QStringList links;
     QString absoluteLink = getAbsoluteLink(link, getHost(link));
     SpiderTree tree(link);
 
-    globalLinks->push_back(absoluteLink);
+    globalLinks->push_back(removeWWW(absoluteLink));
 
     logger.info("Entered SpiderTree builder, absolute link: " + absoluteLink.toStdString());
 
@@ -63,7 +77,7 @@ SpiderTree Spider::buildSpiderTree(QString link, QString host, int depth, QStrin
 
     for(auto it = links.begin() ; it != links.end() ; ++it){
         QString absoluteLink = getAbsoluteLink((*it), getHost(link));
-        if(!globalLinks->contains(absoluteLink) && getHost(absoluteLink) == host){
+        if(!globalLinks->contains(removeWWW(absoluteLink)) && sameHost(host, absoluteLink)){
             SpiderTree node = buildSpiderTree(absoluteLink, host, depth-1, globalLinks);
             tree.appendNode(node);
         }
@@ -98,7 +112,7 @@ QString Spider::getHost(QString link){
 
 QStringList Spider::extract_links(QString request){
     QStringList links;
-    QRegularExpression re("href=[\"|']([^\"']*)[\"']");
+    QRegularExpression re("<a.+?(?=href)href=[\"|']([^\"']*)[\"'][^>]*>");
     QRegularExpressionMatchIterator match = re.globalMatch(request);
     while(match.hasNext()){
         QString link = match.next().captured(1);
