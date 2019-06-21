@@ -42,14 +42,12 @@ QString SpiderTree::pp(unsigned int level){
     return str;
 }
 
+QString Spider::removeSquare(QString link){
+    return link.split("#")[0];
+}
+
 QString Spider::removeWWW(QString link){
-    QRegularExpression re("(?:www.)?(.*)");
-    QRegularExpressionMatch match = re.match(link);
-    if(match.hasMatch()) {
-        //logger.info(link.toStdString() + " -> " + match.captured(1).toStdString());
-        return match.captured(1);
-    }
-    else return "";
+    return link.indexOf("www.") == 0 ? link.split("^www.")[0] : link;
 }
 
 bool Spider::sameHost(QString host, QString absoluteLink){
@@ -88,12 +86,14 @@ SpiderTree Spider::buildSpiderTree(QString link, QString host, int depth, QStrin
 
 QString Spider::getAbsoluteLink(QString link, QString host){
     QRegExp re("^http(?:s)?://(.*)");
-    if(re.indexIn(link) == 0) return re.cap(1);
+    QString ret;
+    if(re.indexIn(link) == 0) ret = re.cap(1);
     else {
-        if(link[0] == '/') return host + link;
-        else if(link.indexOf(host) == 0) return link;
-        else return host + "/" + link;
+        if(link[0] == '/') ret = host + link;
+        else if(removeWWW(link).indexOf(removeWWW(host)) == 0) ret = link;
+        else ret = host + "/" + link;
     }
+    return removeSquare(ret);
 }
 
 QString Spider::getURL(QString link){
@@ -107,7 +107,7 @@ QString Spider::getHost(QString link){
     QRegularExpression re("(?:https?://)?([^/]*)/*(?:.*)");
     QRegularExpressionMatch match = re.match(link);
     if(match.hasMatch()) return match.captured(1);
-    else return link;
+    else return "";
 }
 
 QStringList Spider::extract_links(QString request){
