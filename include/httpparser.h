@@ -75,7 +75,9 @@ class HTTPParser : public QObject {
         void prettyPrinter();
 
         // Converts parsed HTTP headers to QString
-        QString headerToQstring();
+        QString answerHeaderToQString();
+        QString headerFieldsToQString();
+        QString requestHeaderToQString();
 
         // Parse a header line
         bool parseHeaderLine(QString, QString *, QString *);
@@ -87,10 +89,10 @@ class HTTPParser : public QObject {
         bool parseAnswerLine(QString, QString *, QString *, QString *);
 
         // Verifies if a header line from REQUEST is valid
-        inline bool validRequestHeaderLine(QString);
+        bool validRequestHeader(QString);
 
         // Verifies if a header line from ANSWER is valid
-        inline bool validAnswerHeaderLine(QString);
+        bool validAnswerHeader(QString);
 
     signals:
         void logMessage(QString);

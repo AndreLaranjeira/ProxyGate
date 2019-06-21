@@ -54,8 +54,7 @@ typedef struct {
 
 typedef struct {
   int fd;
-  char buffer[HTTP_BUFFER_SIZE+1];
-  ssize_t buffer_size;
+  request buffer;
   struct sockaddr_in addr;
 } connection;
 
@@ -70,8 +69,8 @@ class Server : public QObject {
 
     // Methods:
     int init();
-    void load_client_request(QString);
-    void load_website_request(QString);
+    void load_client_header(QString);
+    void load_website_header(QString);
     void open_gate();
 
   public slots:
@@ -79,12 +78,13 @@ class Server : public QObject {
     void stop();
 
   signals:
-    void clientRequest(QString req);
+    void clientHeader(QString req);
     void error(QString err);
     void finished();
     void gateOpened();
     void logMessage(QString);
-    void websiteRequest(QString req);
+    void newHost(QString);
+    void websiteHeader(QString req);
 
   private:
     // Variables:
@@ -92,14 +92,14 @@ class Server : public QObject {
     bool running;
     int server_fd;
     in_port_t port_number;
-    request new_client_request;
-    request new_website_request;
 
     // Classes and custom types:
     HTTPParser parser;
     MessageLogger logger;
     QMutex gate_mutex;
     QMutex run_mutex;
+    QString new_client_header;
+    QString new_website_header;
     ServerConnections last_read;
     ServerTask next_task;
 
@@ -115,10 +115,10 @@ class Server : public QObject {
     int send_to_client(connection*, connection*);
     int send_to_website(connection*, connection*);
     int update_requests(connection*, connection*);
-    void adjust_line_endings(string*);
     void config_client_addr(struct sockaddr_in*);
     void config_website_addr(struct sockaddr_in*);
     void handle_error(ServerTask, int, int);
+    void replace_header(QString, request*, ssize_t);
     void set_gate_closed(bool);
     void set_running(bool);
 

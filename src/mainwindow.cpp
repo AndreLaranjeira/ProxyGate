@@ -117,11 +117,11 @@ void MainWindow::config_server_thread() {
           SLOT (append(QString)));
 
   // Configure the client request to be displayed:
-  connect(server, SIGNAL (clientRequest(QString)), ui->text_client,
+  connect(server, SIGNAL (clientHeader(QString)), ui->text_client,
           SLOT (setPlainText(QString)));
 
   // Configure the website request to be displayed:
-  connect(server, SIGNAL (websiteRequest(QString)), ui->text_website,
+  connect(server, SIGNAL (websiteHeader(QString)), ui->text_website,
           SLOT (setPlainText(QString)));
 
   // Configure the gate to erase both requests displayed in text boxes:
@@ -150,6 +150,11 @@ void MainWindow::config_tools_thread() {
   // Configure spider logger:
   connect(spider, SIGNAL(updateLog(QString)), ui->spider_log, SLOT(append(QString)));
 
+  // Configure the spider host text field to receive updates from the server:
+  // REFACTOR: Maybe we should check to see if a spider tree is running
+  // before overwriting the host field.
+  connect(server, SIGNAL (newHost(QString)), ui->spider_host, SLOT(setText(QString)));
+
   // Configure the spider output to be displayed:
   connect(spider, SIGNAL(updateSpiderTree(QString)), ui->spider_tree, SLOT(setText(QString)));
 
@@ -163,8 +168,8 @@ void MainWindow::config_tools_thread() {
 
 // Private slots:
 void MainWindow::on_button_gate_clicked() {
-  server->load_client_request(ui->text_client->toPlainText());
-  server->load_website_request(ui->text_website->toPlainText());
+  server->load_client_header(ui->text_client->toPlainText());
+  server->load_website_header(ui->text_website->toPlainText());
   server->open_gate();
 }
 

@@ -89,12 +89,59 @@ bool HTTPParser::parse(char *request, ssize_t size){
     return true;
 }
 
-inline bool HTTPParser::validRequestHeaderLine(QString line){
-    return parseCommandLine(line, nullptr, nullptr, nullptr) && parseHeaderLine(line, nullptr, nullptr);
+bool HTTPParser::validAnswerHeader(QString header){
+
+  QList<QString> lines;
+
+  // Check to see if the header end is correct:
+  if(!header.endsWith("\r\n\r\n"))
+    return false;
+
+  // Remove the header end:
+  header.remove(header.size()-4, 4);
+
+  // Split the remaining lines:
+  lines = header.split(QRegExp("\r\n"));
+
+  // The first line should be an answer line:
+  if(!parseAnswerLine(lines.at(0), nullptr, nullptr, nullptr))
+    return false;
+
+  // The rest of the lines should be header lines:
+  for(QString header_line : lines.mid(1))
+    if(!parseHeaderLine(header_line, nullptr, nullptr))
+      return false;
+
+  return true;
+
 }
 
-inline bool HTTPParser::validAnswerHeaderLine(QString line){
-    return parseAnswerLine(line, nullptr, nullptr, nullptr) && parseHeaderLine(line, nullptr, nullptr);
+bool HTTPParser::validRequestHeader(QString header) {
+
+    QList<QString> lines;
+
+    // Check to see if the header end is correct:
+    if(!header.endsWith("\r\n\r\n"))
+      return false;
+
+    // Remove the header end:
+    header.remove(header.size()-4, 4);
+
+    // Split the remaining lines:
+    lines = header.split(QRegExp("\r\n"));
+
+    // The first line should be a commmand line:
+    if(!parseCommandLine(lines.at(0), nullptr, nullptr, nullptr))
+      return false;
+
+    // The rest of the lines should be header lines:
+    for(QString header_line : lines.mid(1)) {
+      if(!parseHeaderLine(header_line, nullptr, nullptr))
+        return false;
+    }
+
+    return true;
+
 }
 
 bool HTTPParser::parseCommandLine(QString line, QString *method, QString *url, QString *version){
@@ -283,13 +330,21 @@ void HTTPParser::prettyPrinter(){
     cout << endl;
 }
 
+QString HTTPParser::answerHeaderToQString() {
+  QString ret;
+
+  // Renders the answer line:
+  ret += this->getHTTPVersion() + " " + this->getCode() + " " + this->getDescription() + "\r\n";
+  ret += headerFieldsToQString();
+
+  return ret;
+
+}
+
 // Converts header of HTTPParser object into a QString
-QString HTTPParser::headerToQstring(){
+QString HTTPParser::headerFieldsToQString(){
     QString ret;
     QHashIterator<QString,QList<QString>> i(this->getHeaders());
-
-    // Renders first line
-    ret += this->getMethod() + " " + this->getURL() + " " + this->getHTTPVersion() + "\r\n";
 
     // Renders each header line
     while(i.hasNext()){
@@ -303,4 +358,15 @@ QString HTTPParser::headerToQstring(){
     ret += "\r\n";
 
     return ret;
+}
+
+QString HTTPParser::requestHeaderToQString() {
+  QString ret;
+
+  // Renders the answer line:
+  ret += this->getMethod() + " " + this->getURL() + " " + this->getHTTPVersion() + "\r\n";
+  ret += headerFieldsToQString();
+
+  return ret;
+
 }

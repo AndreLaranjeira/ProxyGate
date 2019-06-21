@@ -66,18 +66,14 @@ int Server::init() {
 
 }
 
-void Server::load_client_request(QString new_request) {
-  string aux = new_request.toStdString();
-  adjust_line_endings(&aux);
-  strcpy(new_client_request.content, aux.c_str());
-  new_client_request.size = static_cast<ssize_t>(aux.size());
+void Server::load_client_header(QString new_header) {
+  new_client_header = new_header;
+  new_client_header.replace('\n', "\r\n");   // Adjust line endings.
 }
 
-void Server::load_website_request(QString new_request) {
-  string aux = new_request.toStdString();
-  adjust_line_endings(&aux);
-  strcpy(new_website_request.content, aux.c_str());
-  new_website_request.size = static_cast<ssize_t>(aux.size());
+void Server::load_website_header(QString new_header) {
+  new_website_header = new_header;
+  new_website_header.replace('\n', "\r\n");   // Adjust line endings.
 }
 
 void Server::open_gate() {
@@ -177,7 +173,8 @@ int Server::await_gate() {
   while(is_gate_closed() and is_program_running()) {}
 
   // Signal that the gate actually opened:
-  emit gateOpened();
+  if(is_program_running())
+    emit gateOpened();
 
   // Set the next task:
   next_task = UPDATE_REQUESTS;
@@ -198,7 +195,7 @@ int Server::connect_to_website(connection *client, connection *website){
     }
 
     // Find the host name from the client request:
-    parser.parseRequest(client->buffer, client->buffer_size);
+    parser.parseRequest(client->buffer.content, client->buffer.size);
 
     // Find the IP address for a given host:
     website_IP_data = gethostbyname(parser.getHost().toStdString().c_str());
@@ -273,11 +270,17 @@ int Server::execute_task(ServerTask task, connection *client,
 int Server::read_from_client(connection *client) {
 
   // Client sent data:
-  if((client->buffer_size = read_socket(client->fd, client->buffer, HTTP_BUFFER_SIZE)) > 0) {
-    emit clientRequest(QString(client->buffer));
+  if((client->buffer.size = read_socket(client->fd, client->buffer.content, HTTP_BUFFER_SIZE)) > 0) {
+
+    parser.parseRequest(client->buffer.content, client->buffer.size);
+    emit clientHeader(parser.requestHeaderToQString());
+    emit newHost(parser.getHost());
+
     last_read = CLIENT;
     next_task = AWAIT_GATE;
+
     return 0;
+
   }
 
   // Client didn't send data:
@@ -297,8 +300,8 @@ int Server::read_from_website(connection *website){
 
     // Read first headers:
     logger.info("Reading from website");
-    size_read = read_socket(website->fd, website->buffer, max_size);
-    parser.parseRequest(website->buffer, size_read);
+    size_read = read_socket(website->fd, website->buffer.content, max_size);
+    parser.parseRequest(website->buffer.content, size_read);
 
     logger.info("Received " + parser.getCode().toStdString() + " " + parser.getDescription().toStdString() + " from website");
 
@@ -308,7 +311,7 @@ int Server::read_from_website(connection *website){
         length = headers["Content-Length"].first().toInt();
         while(size_read < length){
             logger.info("Reading extra data from website [" + to_string(size_read) + "/" + to_string(length) + "]");
-            single_read = read_socket(website->fd, website->buffer+size_read,
+            single_read = read_socket(website->fd, website->buffer.content+size_read,
                                       static_cast<ssize_t> (max_size-size_read));
 
             if(single_read == -1) {
@@ -331,7 +334,7 @@ int Server::read_from_website(connection *website){
         if(headers["Transfer-Encoding"].first() == "chunked"){
             while(
                 (single_read = read_socket(website->fd,
-                                           website->buffer+size_read,
+                                           website->buffer.content+size_read,
                                            static_cast<ssize_t> (max_size-size_read))) > 0
             ){
                 logger.info("Reading extra data from website (chunked) [" + to_string(size_read) + "/" + to_string(max_size) + "]");
@@ -343,10 +346,13 @@ int Server::read_from_website(connection *website){
         logger.warning("Website response doesn't contain Content-Length neither Transfer-Encoding");
     }
 
-    website->buffer_size = size_read;
+    website->buffer.size = size_read;
     close(website->fd);
 
-    emit websiteRequest(QString(website->buffer));
+    parser.parseRequest(website->buffer.content, website->buffer.size);
+    emit websiteHeader(parser.answerHeaderToQString());
+    emit newHost(parser.getHost());
+
     last_read = WEBSITE;
     next_task = AWAIT_GATE;
     return 0;
@@ -356,7 +362,7 @@ int Server::read_from_website(connection *website){
 int Server::send_to_client(connection *client, connection *website){
     logger.info("Sending message to client");
 
-    if(send(client->fd, website->buffer, static_cast<size_t> (website->buffer_size), 0) == -1){
+    if(send(client->fd, website->buffer.content, static_cast<size_t> (website->buffer.size), 0) == -1){
         logger.error("Failed to send: " + string(strerror(errno)));
         return -1;
     }
@@ -372,8 +378,8 @@ int Server::send_to_website(connection *client, connection *website){
 
     logger.info("Sending message to website");
 
-    if(send(website->fd, client->buffer,
-            static_cast<size_t> (client->buffer_size), 0) == -1){
+    if(send(website->fd, client->buffer.content,
+            static_cast<size_t> (client->buffer.size), 0) == -1){
         logger.error("Failed to send: " + string(strerror(errno)));
         return -1;
     }
@@ -386,13 +392,21 @@ int Server::send_to_website(connection *client, connection *website){
 
 int Server::update_requests(connection *client, connection *website){
 
+  QString full_request, original_header, original_body;
+  ssize_t body_size, original_size;
+
   // Check which request we should update:
   switch(last_read) {
 
     case CLIENT:
 
+      // Save original request data:
+      parser.parseRequest(client->buffer.content, client->buffer.size);
+      original_header = parser.requestHeaderToQString();
+      original_size = client->buffer.size;
+
       // If there were no edits, continue:
-      if(strcmp(new_client_request.content, client->buffer) == 0) {
+      if(new_client_header == original_header) {
         next_task = CONNECT_TO_WEBSITE;
         logger.info("Client request unchanged!");
       }
@@ -401,17 +415,17 @@ int Server::update_requests(connection *client, connection *website){
       else {
 
         // If the new request is valid, overwrite the buffer:
-        if (parser.parseRequest(new_client_request.content,
-                                new_client_request.size)) {
-          strcpy(client->buffer, new_client_request.content);
-          client->buffer_size = new_client_request.size;
+        if (parser.validRequestHeader(new_client_header)) {
+          emit newHost(parser.getHost());
+          body_size = original_size - original_header.size();
+          replace_header(new_client_header, &(client->buffer), body_size);
           next_task = CONNECT_TO_WEBSITE;
           logger.info("Edited client request!");
         }
 
         // Else, go back to the gate with the old request:
         else {
-          emit clientRequest(QString(client->buffer));
+          emit clientHeader(original_header);
           logger.error("Invalid client request entered! Try again!");
           next_task = AWAIT_GATE;
         }
@@ -422,61 +436,44 @@ int Server::update_requests(connection *client, connection *website){
 
     case WEBSITE:
 
-      // If there were no edits, continue:
-      if(strcmp(new_website_request.content, website->buffer) == 0) {
+    // Save original answer data:
+    parser.parseRequest(website->buffer.content, website->buffer.size);
+    original_header = parser.answerHeaderToQString();
+    original_size = website->buffer.size;
+
+    // If there were no edits, continue:
+    if(new_website_header == original_header) {
+      next_task = SEND_TO_CLIENT;
+      logger.info("Website answer unchanged!");
+    }
+
+    // If there were edits, we might need to overwrite the connection buffer:
+    else {
+
+      // If the new answer is valid, overwrite the buffer:
+      if (parser.validAnswerHeader(new_website_header)) {
+        emit newHost(parser.getHost());
+        body_size = original_size - original_header.size();
+        replace_header(new_website_header, &(website->buffer), body_size);
         next_task = SEND_TO_CLIENT;
-        logger.info("Website request unchanged!");
+        logger.info("Edited website answer!");
       }
 
-      // If there were edits, we might need to overwrite the connection buffer:
+      // Else, go back to the gate with the old request:
       else {
-
-        // If the new request is valid, overwrite the buffer:
-        if (parser.parseRequest(new_website_request.content,
-                                new_website_request.size)) {
-
-          strcpy(website->buffer, new_website_request.content);
-          website->buffer_size = new_website_request.size;
-          logger.info("Edited website request!");
-          next_task = SEND_TO_CLIENT;
-        }
-
-        // Else, go back to the gate with the old request:
-        else {
-          emit websiteRequest(QString(website->buffer));
-          logger.error("Invalid client request entered! Try again!");
-          next_task = AWAIT_GATE;
-        }
-
+        emit websiteHeader(original_header);
+        logger.error("Invalid website answer entered! Try again!");
+        next_task = AWAIT_GATE;
       }
 
-      break;
+    }
+
+    break;
 
   }
 
   return 0;
 
-}
-
-void Server::adjust_line_endings(string *input) {
-  size_t pos = 0, header_end;
-
-  // Find the end of the header line:
-  header_end = (*input).find("\n\n", 0);
-
-  // Find an '\n' to replace:
-  while ((pos = (*input).find("\n", pos)) != std::string::npos) {
-
-    // If we find a '\n\n', we got to the header's end! Replace and leave:
-    if(pos == header_end) {
-      (*input).replace(pos, 2, "\r\n\r\n");
-      break;
-    }
-
-    // Else, just replace the '\n':
-    (*input).replace(pos, 1, "\r\n");
-    pos += 2;
-  }
 }
 
 void Server::config_client_addr(struct sockaddr_in *client_addr) {
@@ -518,6 +515,31 @@ void Server::handle_error(ServerTask task, int client_fd, int website_fd) {
     case UPDATE_REQUESTS:
       return;
   }
+
+}
+
+void Server::replace_header(QString new_header, request *req, ssize_t body_size) {
+  char aux[HTTP_BUFFER_SIZE], *header_end;
+  ssize_t new_size;
+
+  // Find the new request size:
+  new_size = new_header.size() + body_size;
+
+  // Copy the new header:
+  strcpy(aux, new_header.toStdString().c_str());
+
+  // Find the end of the old header (the body beginning):
+  header_end = strstr(req->content, "\r\n\r\n");
+  header_end += 4;
+
+  // Copy the old body:
+  memcpy(aux + new_header.size(), header_end, static_cast <size_t> (body_size));
+
+  // Copy the aux buffer to the request:
+  memcpy(req->content, aux, static_cast<size_t> (new_size));
+
+  // Update the size:
+  req->size = new_size;
 
 }
 
