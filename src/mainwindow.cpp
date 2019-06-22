@@ -6,9 +6,15 @@
 
 // Class methods:
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),
-                                          ui(new Ui::MainWindow) {
+                                          ui(new Ui::MainWindow),
+                                          logger("Main window") {
+                                            
   // UI configuration:
   ui->setupUi(this);
+
+  // Logger configuration:
+  connect(&logger, SIGNAL (sendMessage(QString)), ui->logTextEdit,
+          SLOT (append(QString)));
 
   // Functionality configuration:
   start_server();
@@ -26,7 +32,7 @@ MainWindow::~MainWindow() {
     server->stop();     // Stop the server. Signals and slots handle the rest!
 
   // Success message:
-  //logger.success("Exited application!");
+  logger.success("Exited application!");
 
 }
 
@@ -46,7 +52,7 @@ int MainWindow::start_server() {
 
   // Else, schedule the thread and the server for deletion:
   else {
-    //logger.error("Failed to initialize server!");
+    logger.error("Failed to initialize server!");
     server->deleteLater();
     server_t->deleteLater();
     return -1;
@@ -71,11 +77,6 @@ void MainWindow::start_tools() {
 
 }
 
-//void MainWindow::logMessage(QString message) {
-//  QTextEdit *t = this->findChild<QTextEdit*>("logTextEdit");
-//  t->append(message);
-//}
-
 // Private methods:
 in_port_t MainWindow::server_port() {
 
@@ -94,7 +95,7 @@ in_port_t MainWindow::server_port() {
     // Invalid port number:
     else {
       port_num = DEFAULT_PORT;
-      //logger.warning("Invalid port number argument! Using default port " + to_string(DEFAULT_PORT) + " instead.");
+      logger.warning("Invalid port number argument! Using default port " + to_string(DEFAULT_PORT) + " instead.");
     }
 
   }
@@ -111,24 +112,21 @@ void MainWindow::config_server_thread() {
 
   // Configure server thread signals and slots:
 
-  // If there is an error, signal the Main Window:
-  //connect(server, SIGNAL (error(QString)), this, SLOT (errorString(QString)));
-
   // Configure server message logger:
   connect(server, SIGNAL (logMessage(QString)), ui->logTextEdit,
           SLOT (append(QString)));
 
   // Configure the client request to be displayed:
-  connect(server, SIGNAL (client_request(QString)), ui->text_client,
+  connect(server, SIGNAL (clientHeader(QString)), ui->text_client,
           SLOT (setPlainText(QString)));
 
   // Configure the website request to be displayed:
-  connect(server, SIGNAL (website_request(QString)), ui->text_website,
+  connect(server, SIGNAL (websiteHeader(QString)), ui->text_website,
           SLOT (setPlainText(QString)));
 
   // Configure the gate to erase both requests displayed in text boxes:
-  connect(server, SIGNAL (gate_opened()), ui->text_client, SLOT (clear()));
-  connect(server, SIGNAL (gate_opened()), ui->text_website, SLOT (clear()));
+  connect(server, SIGNAL (gateOpened()), ui->text_client, SLOT (clear()));
+  connect(server, SIGNAL (gateOpened()), ui->text_website, SLOT (clear()));
 
   // The server thread should start the server:
   connect(server_t, SIGNAL (started()), server, SLOT (run()));
@@ -152,6 +150,11 @@ void MainWindow::config_tools_thread() {
   // Configure spider logger:
   connect(spider, SIGNAL(updateLog(QString)), ui->spider_log, SLOT(append(QString)));
 
+  // Configure the spider host text field to receive updates from the server:
+  // REFACTOR: Maybe we should check to see if a spider tree is running
+  // before overwriting the host field.
+  connect(server, SIGNAL (newHost(QString)), ui->spider_host, SLOT(setText(QString)));
+
   // Configure the spider output to be displayed:
   connect(spider, SIGNAL(updateSpiderTree(QString)), ui->spider_tree, SLOT(setText(QString)));
 
@@ -163,11 +166,13 @@ void MainWindow::config_tools_thread() {
 
 }
 
+// Private slots:
 void MainWindow::on_button_gate_clicked() {
+  server->load_client_header(ui->text_client->toPlainText());
+  server->load_website_header(ui->text_website->toPlainText());
   server->open_gate();
 }
 
 void MainWindow::on_spider_push_clicked() {
   emit start_spider(ui->spider_host->text());
 }
-

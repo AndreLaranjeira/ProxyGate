@@ -47,9 +47,9 @@ class HTTPParser : public QObject {
 
         // Private aux methods for parsing
         HeaderBodyPair splitRequest(char *, size_t);
-        bool parseCommandLine(QString);
-        bool parseAnswerLine(QString);
-        bool parseHeaderLine(QString);
+        bool parseCL(QString);
+        bool parseHL(QString);
+        bool parseAL(QString);
         bool parse(char *, ssize_t);
 
     public:
@@ -75,7 +75,24 @@ class HTTPParser : public QObject {
         void prettyPrinter();
 
         // Converts parsed HTTP headers to QString
-        QString headerToQstring();
+        QString answerHeaderToQString();
+        QString headerFieldsToQString();
+        QString requestHeaderToQString();
+
+        // Parse a header line
+        bool parseHeaderLine(QString, QString *, QString *);
+
+        // Parse a command line
+        bool parseCommandLine(QString, QString *, QString *, QString *);
+
+        // Parse an answer line
+        bool parseAnswerLine(QString, QString *, QString *, QString *);
+
+        // Verifies if a header line from REQUEST is valid
+        bool validRequestHeader(QString);
+
+        // Verifies if a header line from ANSWER is valid
+        bool validAnswerHeader(QString);
 
     signals:
         void logMessage(QString);

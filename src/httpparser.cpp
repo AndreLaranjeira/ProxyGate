@@ -64,7 +64,7 @@ bool HTTPParser::parse(char *request, ssize_t size){
             // CommandLine state is the first line to be read
             case COMMANDLINE:
                 // ParseCommandLine method modifies class attributes
-                if(!this->parseCommandLine(line) && !this->parseAnswerLine(line)){
+                if(!this->parseCL(line) && !this->parseAL(line)){
                    logger.error("Could not parse COMMAND LINE: \"" + line.toStdString() + "\"");
                    return false;
                 }
@@ -76,7 +76,7 @@ bool HTTPParser::parse(char *request, ssize_t size){
             // HeaderLine state is to interpret line as a header
             case HEADERLINE:
                 // ParseHeaderLine modifies class attributes
-                if(!this->parseHeaderLine(line)){
+                if(!this->parseHL(line)){
                     logger.error("Could not parse HEADER LINE: \"" + line.toStdString() + "\"");
                     return false;
                 }
@@ -89,15 +89,66 @@ bool HTTPParser::parse(char *request, ssize_t size){
     return true;
 }
 
-// This method parsers first line of a HTTP request
-// It alters private members of class
-// Returns false if could not match with expected expression
-bool HTTPParser::parseCommandLine(QString line){
+bool HTTPParser::validAnswerHeader(QString header){
+
+  QList<QString> lines;
+
+  // Check to see if the header end is correct:
+  if(!header.endsWith("\r\n\r\n"))
+    return false;
+
+  // Remove the header end:
+  header.remove(header.size()-4, 4);
+
+  // Split the remaining lines:
+  lines = header.split(QRegExp("\r\n"));
+
+  // The first line should be an answer line:
+  if(!parseAnswerLine(lines.at(0), nullptr, nullptr, nullptr))
+    return false;
+
+  // The rest of the lines should be header lines:
+  for(QString header_line : lines.mid(1))
+    if(!parseHeaderLine(header_line, nullptr, nullptr))
+      return false;
+
+  return true;
+
+}
+
+bool HTTPParser::validRequestHeader(QString header) {
+
+    QList<QString> lines;
+
+    // Check to see if the header end is correct:
+    if(!header.endsWith("\r\n\r\n"))
+      return false;
+
+    // Remove the header end:
+    header.remove(header.size()-4, 4);
+
+    // Split the remaining lines:
+    lines = header.split(QRegExp("\r\n"));
+
+    // The first line should be a commmand line:
+    if(!parseCommandLine(lines.at(0), nullptr, nullptr, nullptr))
+      return false;
+
+    // The rest of the lines should be header lines:
+    for(QString header_line : lines.mid(1)) {
+      if(!parseHeaderLine(header_line, nullptr, nullptr))
+        return false;
+    }
+
+    return true;
+
+}
+
+bool HTTPParser::parseCommandLine(QString line, QString *method, QString *url, QString *version){
     int pos;
 
     // Regular Expression for command line
     QRegExp commandline("^(GET|HEAD|CONNECT|PUT|DELETE|POST|OPTIONS|TRACE|PATCH) ([:|\\/\\.\\\\-\\w_~/?\\#\\[\\]@!\\$\\^&'\\(\\)\\*\\+\\´,;=%{}]+) (HTTP\\/(?:\\d.\\d))$");
-    QString method, url, version;
 
     // Try to match
     pos = commandline.indexIn(line);
@@ -105,10 +156,15 @@ bool HTTPParser::parseCommandLine(QString line){
     // Should match exactly the first character
     if(pos != 0) return false;
 
-    // Set private variables
-    this->method = commandline.cap(1);
-    this->url = commandline.cap(2);
-    this->version = commandline.cap(3);
+    // Set return
+    if(method != nullptr)
+        *method = commandline.cap(1);
+
+    if(url != nullptr)
+        *url = commandline.cap(2);
+
+    if(version != nullptr)
+        *version = commandline.cap(3);
 
     return true;
 }
@@ -116,13 +172,17 @@ bool HTTPParser::parseCommandLine(QString line){
 // This method parsers first line of a HTTP request
 // It alters private members of class
 // Returns false if could not match with expected expression
-bool HTTPParser::parseAnswerLine(QString line){
+bool HTTPParser::parseCL(QString line){
+    // Parse command line and set private variables
+    return parseCommandLine(line, &this->method, &this->url, &this->version);
+}
+
+bool HTTPParser::parseAnswerLine(QString line, QString *version, QString *code, QString *description){
     int pos;
 
     // Regular Expression for command line
     // HTTP/1.1 403 Forbidden
     QRegExp commandline("^(HTTP\\/(?:\\d.\\d)) (\\d{3}) (.*)$");
-    QString code, description, version;
 
     // Try to match
     pos = commandline.indexIn(line);
@@ -130,10 +190,45 @@ bool HTTPParser::parseAnswerLine(QString line){
     // Should match exactly the first character
     if(pos != 0) return false;
 
-    // Set private variables
-    this->version = commandline.cap(1);
-    this->code = commandline.cap(2);
-    this->description = commandline.cap(3);
+    // Set variables
+    if(version != nullptr)
+        *version = commandline.cap(1);
+
+    if(version != nullptr)
+        *code = commandline.cap(2);
+
+    if(version != nullptr)
+        *description = commandline.cap(3);
+
+    return true;
+}
+
+// This method parsers first line of a HTTP request
+// It alters private members of class
+// Returns false if could not match with expected expression
+bool HTTPParser::parseAL(QString line){
+    // Parsers answer line and set private variables
+    return parseAnswerLine(line, &this->version, &this->code, &this->description);
+}
+
+// This method parsers a header line of a HTTP request
+// Returns false if could not match with expected expression
+// Returns by reference name and value of a header
+bool HTTPParser::parseHeaderLine(QString line, QString *name, QString *value){
+    int pos;
+
+    // Regular Expression for Header Line
+    QRegExp headerline("^([A-Za-z-0-9]*): (.*)$");
+
+    // Try to match
+    pos = headerline.indexIn(line);
+    if(pos != 0) return false;
+
+    if(name != nullptr)
+        *name = headerline.cap(1);
+
+    if(value != nullptr)
+        *value = headerline.cap(2);
 
     return true;
 }
@@ -141,19 +236,12 @@ bool HTTPParser::parseAnswerLine(QString line){
 // This method parsers a header line of a HTTP request
 // It alters private members of class
 // Returns false if could not match with expected expression
-bool HTTPParser::parseHeaderLine(QString line){
-    int pos;
-
-    // Regular Expression for Header Line
-    QRegExp headerline("^([A-Za-z-0-9]*): (.*)$");
+bool HTTPParser::parseHL(QString line){
     QString name, value;
 
-    // Try to match
-    pos = headerline.indexIn(line);
-    if(pos != 0) return false;
-
-    name = headerline.cap(1);
-    value = headerline.cap(2);
+    // Parsers header line
+    if(!this->parseHeaderLine(line, &name, &value))
+        return false;
 
     // Verify if hash already contains header name
     if(this->headers.contains(name))
@@ -232,23 +320,31 @@ void HTTPParser::prettyPrinter(){
     logger.info("Parsed Method: " + this->getMethod().toUtf8().toStdString());
     logger.info("Parsed HTTP Version: " + this->getHTTPVersion().toUtf8().toStdString());
     logger.info("Parsed URL: " + this->getURL().toUtf8().toStdString());
-    for(ssize_t i=0 ; i<this->getDataSize(); i++){
+    for(size_t i=0 ; i<this->getDataSize(); i++){
 //        if(this->getData()[i] == '\0'){
 //            std::cout << "END OF STRING FOUND, MAYBE BINARY DATA" << endl;
 //            //break;
 //        }
-        std::cout << this->getData()[i] << " (" << ((int)this->getData()[i]) << ")" << endl;
+        std::cout << this->getData()[i] << " (" << (static_cast<int>(this->getData()[i])) << ")" << endl;
     }
     cout << endl;
 }
 
+QString HTTPParser::answerHeaderToQString() {
+  QString ret;
+
+  // Renders the answer line:
+  ret += this->getHTTPVersion() + " " + this->getCode() + " " + this->getDescription() + "\r\n";
+  ret += headerFieldsToQString();
+
+  return ret;
+
+}
+
 // Converts header of HTTPParser object into a QString
-QString HTTPParser::headerToQstring(){
+QString HTTPParser::headerFieldsToQString(){
     QString ret;
     QHashIterator<QString,QList<QString>> i(this->getHeaders());
-
-    // Renders first line
-    ret += this->getMethod() + " " + this->getURL() + " " + this->getHTTPVersion() + "\r\n";
 
     // Renders each header line
     while(i.hasNext()){
@@ -262,4 +358,15 @@ QString HTTPParser::headerToQstring(){
     ret += "\r\n";
 
     return ret;
+}
+
+QString HTTPParser::requestHeaderToQString() {
+  QString ret;
+
+  // Renders the answer line:
+  ret += this->getMethod() + " " + this->getURL() + " " + this->getHTTPVersion() + "\r\n";
+  ret += headerFieldsToQString();
+
+  return ret;
+
 }

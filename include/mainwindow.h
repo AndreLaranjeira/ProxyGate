@@ -11,7 +11,7 @@
 #include <QTextEdit>
 
 // User includes:
-//#include "include/message_logger.h"
+#include "include/message_logger.h"
 #include "include/server.h"
 #include "include/spider.h"
 
@@ -33,9 +33,6 @@ class MainWindow : public QMainWindow {
     int start_server();
     void start_tools();
 
-  public slots:
-    //void logMessage(QString);
-
   private slots:
     void on_button_gate_clicked();
     void on_spider_push_clicked();
@@ -46,7 +43,7 @@ class MainWindow : public QMainWindow {
   private:
     // Classes:
     Ui::MainWindow *ui;
-    //MessageLogger logger;
+    MessageLogger logger;
     QThread *server_t;
     Server *server;
 
