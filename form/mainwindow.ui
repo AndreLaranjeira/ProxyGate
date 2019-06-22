@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>836</width>
+    <width>1207</width>
     <height>625</height>
    </rect>
   </property>
@@ -28,7 +28,7 @@
      <rect>
       <x>10</x>
       <y>10</y>
-      <width>811</width>
+      <width>1171</width>
       <height>581</height>
      </rect>
     </property>
@@ -42,9 +42,9 @@
      <widget class="QWidget" name="gridLayoutWidget">
       <property name="geometry">
        <rect>
-        <x>50</x>
+        <x>10</x>
         <y>20</y>
-        <width>741</width>
+        <width>1151</width>
         <height>501</height>
        </rect>
       </property>
@@ -61,7 +61,7 @@
         </layout>
        </item>
        <item row="12" column="0">
-        <layout class="QVBoxLayout" name="verticalLayout">
+        <layout class="QVBoxLayout" name="request_box">
          <item>
           <widget class="QLabel" name="label">
            <property name="text">
@@ -69,22 +69,16 @@
            </property>
           </widget>
          </item>
-         <item>
-          <widget class="QPlainTextEdit" name="text_client"/>
-         </item>
         </layout>
        </item>
        <item row="12" column="1">
-        <layout class="QVBoxLayout" name="verticalLayout_6">
+        <layout class="QVBoxLayout" name="reply_box">
          <item>
           <widget class="QLabel" name="label_6">
            <property name="text">
             <string>Reply</string>
            </property>
           </widget>
-         </item>
-         <item>
-          <widget class="QPlainTextEdit" name="text_website"/>
          </item>
         </layout>
        </item>

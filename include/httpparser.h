@@ -66,6 +66,7 @@ class HTTPParser : public QObject {
         QString getDescription();
         char *getData();
         size_t getDataSize();
+        int getHeadersSize();
         Headers getHeaders();
 
         // Parser
@@ -78,6 +79,10 @@ class HTTPParser : public QObject {
         QString answerHeaderToQString();
         QString headerFieldsToQString();
         QString requestHeaderToQString();
+
+        // Converts parsed HTTP to QByteArray
+        QByteArray requestBuffer();
+        QByteArray answerBuffer();
 
         // Parse a header line
         bool parseHeaderLine(QString, QString *, QString *);
