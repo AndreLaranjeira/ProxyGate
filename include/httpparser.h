@@ -99,6 +99,9 @@ class HTTPParser : public QObject {
         // Verifies if a header line from ANSWER is valid
         bool validAnswerHeader(QString);
 
+        // Updates content length based on body size
+        void updateContentLength();
+
     signals:
         void logMessage(QString);
 

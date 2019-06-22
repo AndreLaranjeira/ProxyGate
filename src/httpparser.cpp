@@ -84,10 +84,6 @@ bool HTTPParser::parse(char *request, ssize_t size){
         }
     }
 
-    if(this->headers.contains("Content-Length")){
-        this->headers["Content-Length"][0] = QString::fromStdString(std::to_string(this->splitted.body_size));
-    }
-
     logger.info("Successfully parsed HTTP request");
 
     return true;
@@ -393,4 +389,10 @@ QByteArray HTTPParser::answerBuffer(){
     ret.append(this->answerHeaderToQString());
     ret.append(this->getData(), static_cast<int>(this->getDataSize()));
     return ret;
+}
+
+void HTTPParser::updateContentLength(){
+    if(this->headers.contains("Content-Length")){
+        this->headers["Content-Length"][0] = QString::fromStdString(std::to_string(this->splitted.body_size));
+    }
 }

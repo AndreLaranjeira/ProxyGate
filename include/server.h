@@ -69,8 +69,8 @@ class Server : public QObject {
 
     // Methods:
     int init();
-    void load_client_header(QByteArray);
-    void load_website_header(QByteArray);
+    void load_client_header(QString, QByteArray);
+    void load_website_header(QString, QByteArray);
     void open_gate();
 
   public slots:
@@ -78,13 +78,13 @@ class Server : public QObject {
     void stop();
 
   signals:
-    void clientData(QByteArray);
+    void clientData(QString, QByteArray);
     void error(QString err);
     void finished();
     void gateOpened();
     void logMessage(QString);
     void newHost(QString);
-    void websiteData(QByteArray);
+    void websiteData(QString, QByteArray);
 
   private:
     // Variables:
@@ -99,7 +99,9 @@ class Server : public QObject {
     QMutex gate_mutex;
     QMutex run_mutex;
     QByteArray new_client_data;
+    QString new_client_headers;
     QByteArray new_website_data;
+    QString new_website_headers;
     ServerConnections last_read;
     ServerTask next_task;
 

@@ -37,8 +37,8 @@ class MainWindow : public QMainWindow {
   private slots:
     void on_button_gate_clicked();
     void on_spider_push_clicked();
-    void setClientData(QByteArray);
-    void setWebsiteData(QByteArray);
+    void setClientData(QString, QByteArray);
+    void setWebsiteData(QString, QByteArray);
     void clearClientData();
     void clearWebsiteData();
 

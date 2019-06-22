@@ -66,14 +66,16 @@ int Server::init() {
 
 }
 
-void Server::load_client_header(QByteArray new_data) {
+void Server::load_client_header(QString new_headers, QByteArray new_data) {
   new_client_data = new_data;
-  //new_client_header.replace('\n', "\r\n");   // Adjust line endings.
+  new_client_headers = new_headers;
+  new_client_headers.replace('\n', "\r\n");   // Adjust line endings.
 }
 
-void Server::load_website_header(QByteArray new_data) {
+void Server::load_website_header(QString new_headers, QByteArray new_data) {
   new_website_data = new_data;
-  //new_website_header.replace('\n', "\r\n");   // Adjust line endings.
+  new_website_headers = new_headers;
+  new_website_headers.replace('\n', "\r\n");   // Adjust line endings.
 }
 
 void Server::open_gate() {
@@ -273,7 +275,7 @@ int Server::read_from_client(connection *client) {
   if((client->buffer.size = read_socket(client->fd, client->buffer.content, HTTP_BUFFER_SIZE)) > 0) {
 
     parser.parseRequest(client->buffer.content, client->buffer.size);
-    emit clientData(QByteArray(client->buffer.content, client->buffer.size));
+    emit clientData(parser.requestHeaderToQString(), QByteArray(parser.getData(), parser.getDataSize()));
     emit newHost(parser.getHost());
 
     last_read = CLIENT;
@@ -350,7 +352,7 @@ int Server::read_from_website(connection *website){
     close(website->fd);
 
     parser.parseRequest(website->buffer.content, website->buffer.size);
-    emit websiteData(QByteArray(website->buffer.content, website->buffer.size));
+    emit websiteData(parser.answerHeaderToQString(), QByteArray(parser.getData(), parser.getDataSize()));
     emit newHost(parser.getHost());
 
     last_read = WEBSITE;
@@ -392,8 +394,10 @@ int Server::send_to_website(connection *client, connection *website){
 
 int Server::update_requests(connection *client, connection *website){
 
-  QString full_request, original_header, original_body;
+  QString full_request, original_header;
+  QByteArray original_data;
   ssize_t body_size, original_size;
+  QByteArray new_buffer;
 
   // Check which request we should update:
   switch(last_read) {
@@ -401,12 +405,14 @@ int Server::update_requests(connection *client, connection *website){
     case CLIENT:
 
       // Save original request data:
-//      parser.parseRequest(client->buffer.content, client->buffer.size);
-//      original_header = parser.requestHeaderToQString();
+      parser.parseRequest(client->buffer.content, client->buffer.size);
+      original_header = parser.requestHeaderToQString();
+      original_data = QByteArray(parser.getData(), parser.getDataSize());
 //      original_size = client->buffer.size;
 
+
       // If there were no edits, continue:
-      if(new_client_data == QByteArray(client->buffer.content, client->buffer.size)) {
+      if(new_client_headers == original_header && new_client_data == original_data) {
         next_task = CONNECT_TO_WEBSITE;
         logger.info("Client request unchanged!");
       }
@@ -416,8 +422,12 @@ int Server::update_requests(connection *client, connection *website){
 
         HTTPParser new_client_request;
 
+        new_buffer.append(new_client_headers);
+        new_buffer.append(new_client_data);
+
         // If the new request is valid, overwrite the buffer:
-        if(new_client_request.parseRequest(new_client_data.data(), new_client_data.size())){
+        if(new_client_request.parseRequest(new_buffer.data(), new_buffer.size())){
+            new_client_request.updateContentLength();
             emit newHost(parser.getHost());
             replace_buffer(&(client->buffer), new_client_request.requestBuffer());
             next_task = CONNECT_TO_WEBSITE;
@@ -425,7 +435,7 @@ int Server::update_requests(connection *client, connection *website){
         }
         // Else, go back to the gate with the old request:
         else {
-            emit clientData(QByteArray(client->buffer.content, client->buffer.size));
+            emit clientData(parser.requestHeaderToQString(), QByteArray(parser.getData(), parser.getDataSize()));
             logger.error("Invalid client request entered! Try again!");
             next_task = AWAIT_GATE;
         }
@@ -452,8 +462,13 @@ int Server::update_requests(connection *client, connection *website){
 
     case WEBSITE:
 
+      // Save original request data:
+      parser.parseRequest(website->buffer.content, website->buffer.size);
+      original_header = parser.requestHeaderToQString();
+      original_data = QByteArray(parser.getData(), parser.getDataSize());
+
       // If there were no edits, continue:
-      if(new_website_data == QByteArray(website->buffer.content, website->buffer.size)) {
+      if(new_website_headers == original_header && new_website_data == original_data) {
         next_task = SEND_TO_CLIENT;
         logger.info("Website answer unchanged!");
       }
@@ -463,8 +478,12 @@ int Server::update_requests(connection *client, connection *website){
 
         HTTPParser new_website_answer;
 
+        new_buffer.append(new_website_headers);
+        new_buffer.append(new_website_data);
+
         // If the new request is valid, overwrite the buffer:
-        if(new_website_answer.parseRequest(new_website_data.data(), new_website_data.size())){
+        if(new_website_answer.parseRequest(new_buffer.data(), new_buffer.size())){
+            new_website_answer.updateContentLength();
             emit newHost(parser.getHost());
             replace_buffer(&(website->buffer), new_website_answer.answerBuffer());
             next_task = SEND_TO_CLIENT;
@@ -472,7 +491,7 @@ int Server::update_requests(connection *client, connection *website){
         }
         // Else, go back to the gate with the old request:
         else {
-            emit websiteData(QByteArray(website->buffer.content, website->buffer.size));
+            emit websiteData(parser.answerHeaderToQString(), QByteArray(parser.getData(), parser.getDataSize()));
             logger.error("Invalid website answer entered! Try again!");
             next_task = AWAIT_GATE;
         }
