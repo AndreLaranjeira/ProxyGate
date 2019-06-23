@@ -82,7 +82,7 @@ void MainWindow::start_tools() {
 
   // Initialize classes:
   tools_t = new QThread;
-  spider = new Spider;
+  spider = new SpiderDumper;
 
   // Move classes to the thread:
   spider->moveToThread(tools_t);
@@ -161,7 +161,10 @@ void MainWindow::config_server_thread() {
 void MainWindow::config_tools_thread() {
 
   // Configure spider thread to run when user clicks the button:
-  connect(this, SIGNAL(start_spider(QString)), spider, SLOT(execute(QString)));
+  connect(this, SIGNAL(start_spider(QString)), spider, SLOT(spider(QString)));
+
+  // Configure spider thread to run dumper when user clicks the button:
+  connect(this, SIGNAL(start_dumper(QString)), spider, SLOT(dumper(QString)));
 
   // Configure spider logger:
   connect(spider, SIGNAL(updateLog(QString)), ui->spider_log, SLOT(append(QString)));
@@ -192,6 +195,10 @@ void MainWindow::on_button_gate_clicked() {
 
 void MainWindow::on_spider_push_clicked() {
   emit start_spider(ui->spider_host->text());
+}
+
+void MainWindow::on_dumper_push_clicked() {
+  emit start_dumper(ui->spider_host->text());
 }
 
 void MainWindow::setClientData(QString headers, QByteArray data){

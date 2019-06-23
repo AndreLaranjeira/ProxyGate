@@ -37,6 +37,7 @@ class MainWindow : public QMainWindow {
   private slots:
     void on_button_gate_clicked();
     void on_spider_push_clicked();
+    void on_dumper_push_clicked();
     void setClientData(QString, QByteArray);
     void setWebsiteData(QString, QByteArray);
     void clearClientData();
@@ -44,6 +45,7 @@ class MainWindow : public QMainWindow {
 
   signals:
     void start_spider(QString);
+    void start_dumper(QString);
 
   private:
     // Classes:
@@ -56,7 +58,7 @@ class MainWindow : public QMainWindow {
 
 
     QThread *tools_t;
-    Spider *spider;
+    SpiderDumper *spider;
 
     // Methods:
     in_port_t server_port();

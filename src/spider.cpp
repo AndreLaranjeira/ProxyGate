@@ -1,11 +1,11 @@
 #include "include/spider.h"
 
-Spider::Spider() : logger("Spider"){
+SpiderDumper::SpiderDumper() : logger("SpiderDumper"){
     connect(&logger, SIGNAL (sendMessage(QString)), this,
             SIGNAL (updateLog(QString)));
 }
 
-void Spider::execute(QString link){
+void SpiderDumper::spider(QString link){
     QString request;
     QStringList links;
 
@@ -16,6 +16,21 @@ void Spider::execute(QString link){
     SpiderTree tree = buildSpiderTree(link, getHost(link), SPIDER_TREE_DEPTH, &links);
 
     emit updateSpiderTree(tree.prettyPrint());
+
+}
+
+void SpiderDumper::dumper(QString link){
+    QStringList links;
+
+    logger.info("Entered dumper");
+
+    // Deletes output folder
+    QDir outDir("dumpoutput/");
+    outDir.removeRecursively();
+
+    dump(link, getHost(link), SPIDER_TREE_DEPTH, &links);
+
+    logger.info("Dump complete!");
 
 }
 
@@ -42,20 +57,20 @@ QString SpiderTree::pp(unsigned int level){
     return str;
 }
 
-QString Spider::removeSquare(QString link){
+QString SpiderDumper::removeSquare(QString link){
     return link.split("#")[0];
 }
 
-QString Spider::removeWWW(QString link){
+QString SpiderDumper::removeWWW(QString link){
     return link.indexOf("www.") == 0 ? link.split("^www.")[0] : link;
 }
 
-bool Spider::sameHost(QString host, QString absoluteLink){
+bool SpiderDumper::sameHost(QString host, QString absoluteLink){
     return removeWWW(host) == getHost(removeWWW(absoluteLink));
 }
 
-SpiderTree Spider::buildSpiderTree(QString link, QString host, int depth, QStringList *globalLinks){
-    QString request;
+SpiderTree SpiderDumper::buildSpiderTree(QString link, QString host, int depth, QStringList *globalLinks){
+    QByteArray request;
     QStringList links;
     QString absoluteLink = getAbsoluteLink(link, getHost(link));
     SpiderTree tree(link);
@@ -84,7 +99,70 @@ SpiderTree Spider::buildSpiderTree(QString link, QString host, int depth, QStrin
     return tree;
 }
 
-QString Spider::getAbsoluteLink(QString link, QString host){
+void SpiderDumper::dump(QString link, QString host, int depth, QStringList *globalLinks){
+    QByteArray request;
+    QStringList links;
+    QString absoluteLink = getAbsoluteLink(link, getHost(link));
+
+    logger.info("Entered SpiderTree dumper builder, absolute link: " + absoluteLink.toStdString());
+
+    globalLinks->push_back(removeWWW(absoluteLink));
+
+    if(depth == 0) return;
+
+    // Creates raw path
+    std::string rawpath = "dumpoutput/" + getURL(link).toStdString();
+
+    // Split folder from filename
+    size_t index = rawpath.find_last_of("/");
+    std::string folder = rawpath.substr(0,index+1);
+    std::string filename = rawpath.substr(index+1);
+
+    // If filename is empty put index.html
+    if(filename == ""){
+        filename = "index.html";
+    }
+
+    // Creates intermediate folders
+    QDir dir(QString::fromStdString(folder));
+    if(!dir.exists()){
+        dir.mkpath(".");
+    }
+
+    // Creates real path
+    QString path = QString::fromStdString(folder) + QString::fromStdString(filename);
+
+    // Opens file
+    QFile file(path);
+    if(!file.open(QIODevice::WriteOnly)){
+        logger.error("Could not create file " + path.toStdString());
+        return;
+    }
+
+    logger.info("Dump to " + path.toStdString());
+
+    if((get(link, &request)) < 0){
+        logger.error("Unable to GET from website");
+        return;
+    }
+
+    // Saves to file
+    file.write(request);
+    file.close();
+
+    links = extract_references(request);
+
+    for(auto it = links.begin() ; it != links.end() ; ++it){
+        QString absoluteLink = getAbsoluteLink((*it), getHost(link));
+        if(!globalLinks->contains(removeWWW(absoluteLink)) && sameHost(host, absoluteLink)){
+            dump(absoluteLink, host, depth-1, globalLinks);
+        }
+    }
+
+    return;
+}
+
+QString SpiderDumper::getAbsoluteLink(QString link, QString host){
     QRegExp re("^http(?:s)?://(.*)");
     QString ret;
     if(re.indexIn(link) == 0) ret = re.cap(1);
@@ -96,21 +174,21 @@ QString Spider::getAbsoluteLink(QString link, QString host){
     return removeSquare(ret);
 }
 
-QString Spider::getURL(QString link){
+QString SpiderDumper::getURL(QString link){
     QRegularExpression re("(?:https?://)?(?:[^/]*)/*(.*)");
     QRegularExpressionMatch match = re.match(link);
     if(match.hasMatch()) return match.captured(1);
     else return link;
 }
 
-QString Spider::getHost(QString link){
+QString SpiderDumper::getHost(QString link){
     QRegularExpression re("(?:https?://)?([^/]*)/*(?:.*)");
     QRegularExpressionMatch match = re.match(link);
     if(match.hasMatch()) return match.captured(1);
     else return "";
 }
 
-QStringList Spider::extract_links(QString request){
+QStringList SpiderDumper::extract_links(QString request){
     QStringList links;
     QRegularExpression re("<a.+?(?=href)href=[\"|']([^\"']*)[\"'][^>]*>");
     QRegularExpressionMatchIterator match = re.globalMatch(request);
@@ -122,7 +200,19 @@ QStringList Spider::extract_links(QString request){
     return links;
 }
 
-int Spider::con(QString host, int *website_fd){
+QStringList SpiderDumper::extract_references(QString request){
+    QStringList links;
+    QRegularExpression re("(?:href|src)=[\"|']([^\"']*)[\"']");
+    QRegularExpressionMatchIterator match = re.globalMatch(request);
+    while(match.hasNext()){
+        QString link = match.next().captured(1);
+        if(!links.contains(link))
+            links << link;
+    }
+    return links;
+}
+
+int SpiderDumper::con(QString host, int *website_fd){
     struct hostent *website_ip_data;
     struct sockaddr_in website_addr;
 
@@ -163,7 +253,7 @@ int Spider::con(QString host, int *website_fd){
     return 0;
 }
 
-int Spider::get(QString link, QString *ret){
+int SpiderDumper::get(QString link, QByteArray *ret){
     size_t max_size = HTTP_BUFFER_SIZE;
     ssize_t single_read;
     ssize_t size_read;
@@ -239,10 +329,7 @@ int Spider::get(QString link, QString *ret){
 
     finalParser.parseRequest(buffer, size_read);
 
-    char *data = finalParser.getData();
-    size_t size = finalParser.getDataSize();
-
-    *ret = QString::fromStdString(std::string(data, size));
+    *ret = QByteArray(finalParser.getData(), finalParser.getDataSize());
 
     close(website_fd);
 
