@@ -40,6 +40,9 @@ class Spider : public QObject {
     QString getURL(QString);
     QString getHost(QString);
     SpiderTree buildSpiderTree(QString, QString, int, QStringList *);
+    bool sameHost(QString, QString);
+    QString removeWWW(QString);
+    QString removeSquare(QString);
 
     public:
         Spider();

@@ -42,13 +42,25 @@ QString SpiderTree::pp(unsigned int level){
     return str;
 }
 
+QString Spider::removeSquare(QString link){
+    return link.split("#")[0];
+}
+
+QString Spider::removeWWW(QString link){
+    return link.indexOf("www.") == 0 ? link.split("^www.")[0] : link;
+}
+
+bool Spider::sameHost(QString host, QString absoluteLink){
+    return removeWWW(host) == getHost(removeWWW(absoluteLink));
+}
+
 SpiderTree Spider::buildSpiderTree(QString link, QString host, int depth, QStringList *globalLinks){
     QString request;
     QStringList links;
     QString absoluteLink = getAbsoluteLink(link, getHost(link));
     SpiderTree tree(link);
 
-    globalLinks->push_back(absoluteLink);
+    globalLinks->push_back(removeWWW(absoluteLink));
 
     logger.info("Entered SpiderTree builder, absolute link: " + absoluteLink.toStdString());
 
@@ -63,7 +75,7 @@ SpiderTree Spider::buildSpiderTree(QString link, QString host, int depth, QStrin
 
     for(auto it = links.begin() ; it != links.end() ; ++it){
         QString absoluteLink = getAbsoluteLink((*it), getHost(link));
-        if(!globalLinks->contains(absoluteLink) && getHost(absoluteLink) == host){
+        if(!globalLinks->contains(removeWWW(absoluteLink)) && sameHost(host, absoluteLink)){
             SpiderTree node = buildSpiderTree(absoluteLink, host, depth-1, globalLinks);
             tree.appendNode(node);
         }
@@ -74,12 +86,14 @@ SpiderTree Spider::buildSpiderTree(QString link, QString host, int depth, QStrin
 
 QString Spider::getAbsoluteLink(QString link, QString host){
     QRegExp re("^http(?:s)?://(.*)");
-    if(re.indexIn(link) == 0) return re.cap(1);
+    QString ret;
+    if(re.indexIn(link) == 0) ret = re.cap(1);
     else {
-        if(link[0] == '/') return host + link;
-        else if(link.indexOf(host) == 0) return link;
-        else return host + "/" + link;
+        if(link[0] == '/') ret = host + link;
+        else if(removeWWW(link).indexOf(removeWWW(host)) == 0) ret = link;
+        else ret = host + "/" + link;
     }
+    return removeSquare(ret);
 }
 
 QString Spider::getURL(QString link){
@@ -93,12 +107,12 @@ QString Spider::getHost(QString link){
     QRegularExpression re("(?:https?://)?([^/]*)/*(?:.*)");
     QRegularExpressionMatch match = re.match(link);
     if(match.hasMatch()) return match.captured(1);
-    else return link;
+    else return "";
 }
 
 QStringList Spider::extract_links(QString request){
     QStringList links;
-    QRegularExpression re("href=[\"|']([^\"']*)[\"']");
+    QRegularExpression re("<a.+?(?=href)href=[\"|']([^\"']*)[\"'][^>]*>");
     QRegularExpressionMatchIterator match = re.globalMatch(request);
     while(match.hasNext()){
         QString link = match.next().captured(1);

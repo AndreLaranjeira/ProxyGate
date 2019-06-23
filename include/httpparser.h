@@ -102,6 +102,12 @@ class HTTPParser : public QObject {
         // Updates content length based on body size
         void updateContentLength();
 
+        // Verifies if a header line from REQUEST is valid
+        inline bool validRequestHeaderLine(QString);
+
+        // Verifies if a header line from ANSWER is valid
+        inline bool validAnswerHeaderLine(QString);
+
     signals:
         void logMessage(QString);
 

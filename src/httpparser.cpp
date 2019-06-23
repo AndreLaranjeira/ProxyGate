@@ -141,7 +141,6 @@ bool HTTPParser::validRequestHeader(QString header) {
     }
 
     return true;
-
 }
 
 bool HTTPParser::parseCommandLine(QString line, QString *method, QString *url, QString *version){
