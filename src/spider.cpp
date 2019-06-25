@@ -19,16 +19,12 @@ void SpiderDumper::spider(QString link){
 
 }
 
-void SpiderDumper::dumper(QString link){
+void SpiderDumper::dumper(QString link, QString dir){
     QStringList links;
 
     logger.info("Entered dumper");
 
-    // Deletes output folder
-    QDir outDir("dumpoutput/");
-    outDir.removeRecursively();
-
-    dump(link, getHost(link), SPIDER_TREE_DEPTH, &links);
+    dump(link, getHost(link), SPIDER_TREE_DEPTH, &links, dir);
 
     logger.info("Dump complete!");
 
@@ -99,7 +95,7 @@ SpiderTree SpiderDumper::buildSpiderTree(QString link, QString host, int depth, 
     return tree;
 }
 
-void SpiderDumper::dump(QString link, QString host, int depth, QStringList *globalLinks){
+void SpiderDumper::dump(QString link, QString host, int depth, QStringList *globalLinks, QString dirpath){
     QByteArray request;
     QStringList links;
     QString absoluteLink = getAbsoluteLink(link, getHost(link));
@@ -111,7 +107,7 @@ void SpiderDumper::dump(QString link, QString host, int depth, QStringList *glob
     if(depth == 0) return;
 
     // Creates raw path
-    std::string rawpath = "dumpoutput/" + getURL(link).toStdString();
+    std::string rawpath = dirpath.toStdString() + "/" + getURL(link).toStdString();
 
     // Split folder from filename
     size_t index = rawpath.find_last_of("/");
@@ -155,7 +151,7 @@ void SpiderDumper::dump(QString link, QString host, int depth, QStringList *glob
     for(auto it = links.begin() ; it != links.end() ; ++it){
         QString absoluteLink = getAbsoluteLink((*it), getHost(link));
         if(!globalLinks->contains(removeWWW(absoluteLink)) && sameHost(host, absoluteLink)){
-            dump(absoluteLink, host, depth-1, globalLinks);
+            dump(absoluteLink, host, depth-1, globalLinks, dirpath);
         }
     }
 

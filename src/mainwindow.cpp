@@ -164,7 +164,7 @@ void MainWindow::config_tools_thread() {
   connect(this, SIGNAL(start_spider(QString)), spider, SLOT(spider(QString)));
 
   // Configure spider thread to run dumper when user clicks the button:
-  connect(this, SIGNAL(start_dumper(QString)), spider, SLOT(dumper(QString)));
+  connect(this, SIGNAL(start_dumper(QString, QString)), spider, SLOT(dumper(QString, QString)));
 
   // Configure spider logger:
   connect(spider, SIGNAL(updateLog(QString)), ui->spider_log, SLOT(append(QString)));
@@ -198,7 +198,8 @@ void MainWindow::on_spider_push_clicked() {
 }
 
 void MainWindow::on_dumper_push_clicked() {
-  emit start_dumper(ui->spider_host->text());
+  QString dir = QFileDialog::getExistingDirectory(this, tr("Escolha uma pasta"), ".", QFileDialog::ShowDirsOnly);
+  emit start_dumper(ui->spider_host->text(), dir);
 }
 
 void MainWindow::setClientData(QString headers, QByteArray data){

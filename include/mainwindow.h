@@ -9,6 +9,7 @@
 #include <QObject>
 #include <QThread>
 #include <QTextEdit>
+#include <QFileDialog>
 
 // User includes:
 #include "include/message_logger.h"
@@ -45,7 +46,7 @@ class MainWindow : public QMainWindow {
 
   signals:
     void start_spider(QString);
-    void start_dumper(QString);
+    void start_dumper(QString, QString);
 
   private:
     // Classes:

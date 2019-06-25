@@ -44,7 +44,7 @@ class SpiderDumper : public QObject {
     QString getURL(QString);
     QString getHost(QString);
     SpiderTree buildSpiderTree(QString, QString, int, QStringList *);
-    void dump(QString, QString, int, QStringList *);
+    void dump(QString, QString, int, QStringList *, QString);
     bool sameHost(QString, QString);
     QString removeWWW(QString);
     QString removeSquare(QString);
@@ -54,7 +54,7 @@ class SpiderDumper : public QObject {
 
     public slots:
         void spider(QString);
-        void dumper(QString);
+        void dumper(QString, QString);
 
     signals:
         void updateSpiderTree(QString);
