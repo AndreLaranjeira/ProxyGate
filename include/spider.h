@@ -15,19 +15,25 @@
 #include "include/message_logger.h"
 #include "include/httpparser.h"
 
-#define SPIDER_TREE_DEPTH 4
+#define SPIDER_TREE_DEPTH 2
 
 class SpiderTree {
     private:
         list<SpiderTree> nodes;
         QString link;
         QString pp(unsigned int);
+        QByteArray data;
+        QString contentType;
     public:
         SpiderTree(QString);
         void appendNode(SpiderTree);
         list<SpiderTree> *getNodes();
         QString getLink();
         QString prettyPrint();
+        void setData(QByteArray);
+        QByteArray getData();
+        void setContentType(QString);
+        QString getContentType();
 };
 
 class SpiderDumper : public QObject {
@@ -46,13 +52,20 @@ class SpiderDumper : public QObject {
     QString getURL(QString);
     QString getURL_relative(QString, QString);
     QString getHost(QString);
-    void buildSpiderTree(SpiderTree *, QString, QString, int, QStringList *);
-    void dump(QString, QString, int, QStringList *, QString);
+    SpiderTree buildSpiderTree(QString);
+    SpiderTree buildSpiderTree(QString, bool);
+    QByteArray buildSpiderTreeRecursive(SpiderTree *, QString, QString, int, QStringList *, bool);
+    void dump(SpiderTree, QString);
+    void dumpRecursive(SpiderTree, QString);
     bool sameHost(QString, QString);
     QString removeWWW(QString);
     QString removeSquare(QString);
-    QString extract_and_fix_references(QString, QStringList *, QString url);
+    QString fix_references(QString, QString);
     QString buildBackDir(int);
+    QString getFileName(QString);
+    QString getFolderName(QString);
+    QString getFileExtension(QString);
+    void saveToFile(QString, QString, QByteArray);
 
 
     public:

@@ -7,15 +7,12 @@ SpiderDumper::SpiderDumper() : logger("SpiderDumper"){
 
 void SpiderDumper::spider(QString link){
     QString request;
-    QStringList links;
-    SpiderTree tree(getHost(link));
 
     emit updateSpiderTree("");
 
     logger.info("Entered spider");
 
-    links.append(getHost(link));
-    buildSpiderTree(&tree, link, getHost(link), SPIDER_TREE_DEPTH, &links);
+    SpiderTree tree = buildSpiderTree(link, false);
 
     emit updateSpiderTree(tree.prettyPrint());
 
@@ -26,7 +23,9 @@ void SpiderDumper::dumper(QString link, QString dir){
 
     logger.info("Entered dumper");
 
-    dump(link, getHost(link), SPIDER_TREE_DEPTH, &links, dir);
+    SpiderTree tree = buildSpiderTree(link, true);
+
+    dump(tree, dir);
 
     logger.info("Dump complete!");
 
@@ -55,6 +54,22 @@ QString SpiderTree::pp(unsigned int level){
     return str;
 }
 
+QByteArray SpiderTree::getData(){
+    return this->data;
+}
+
+void SpiderTree::setData(QByteArray data){
+    this->data = data;
+}
+
+QString SpiderTree::getContentType(){
+    return this->contentType;
+}
+
+void SpiderTree::setContentType(QString contentType){
+    this->contentType= contentType;
+}
+
 QString SpiderDumper::removeSquare(QString link){
     return link.split("#")[0];
 }
@@ -75,21 +90,40 @@ QString SpiderTree::getLink(){
     return this->link;
 }
 
-void SpiderDumper::buildSpiderTree(SpiderTree *tree, QString link, QString host, int depth, QStringList *globalLinks){
+SpiderTree SpiderDumper::buildSpiderTree(QString link, bool dump){
+    SpiderTree tree(getHost(link));
+    QStringList links;
+    links.append(getHost(link));
+
+    buildSpiderTreeRecursive(&tree, link, getHost(link), SPIDER_TREE_DEPTH, &links, dump);
+
+    return tree;
+}
+
+QByteArray SpiderDumper::buildSpiderTreeRecursive(SpiderTree *tree, QString link, QString host, int depth, QStringList *globalLinks, bool dump){
     QByteArray request;
     QStringList links;
+    QString contentType;
     QString absoluteLink = getAbsoluteLink(link, getHost(link));
 
     logger.info("Entered SpiderTree builder, absolute link: " + absoluteLink.toStdString());
 
-    if(depth == 0) return;
+    if(depth == 0) return "";
 
-    if((get(link, &request, nullptr)) < 0){
+    if((get(link, &request, &contentType)) < 0){
         logger.error("Unable to GET from website");
-        return;
+        return "";
     }
 
-    links = extract_links(request);
+    // Set content type to node
+    (*tree).setContentType(contentType);
+
+    if(dump){
+        links = extract_references(request);
+    }
+    else {
+        links = extract_links(request);
+    }
 
     // Append child nodes
     for(auto it = links.begin() ; it != links.end() ; ++it){
@@ -105,45 +139,53 @@ void SpiderDumper::buildSpiderTree(SpiderTree *tree, QString link, QString host,
 
     // Call for each child node recursivelly
     for(auto it = (*tree).getNodes()->begin() ; it != (*tree).getNodes()->end() ; ++it){
-        buildSpiderTree(&(*it), (*it).getLink(), host, depth-1, globalLinks);
+        QByteArray data = buildSpiderTreeRecursive(&(*it), (*it).getLink(), host, depth-1, globalLinks, dump);
+        if(dump) (*it).setData(data);
     }
+
+    return request;
 
 }
 
-void SpiderDumper::dump(QString link, QString host, int depth, QStringList *globalLinks, QString dirpath){
-    QByteArray request;
-    QStringList links;
-    QString absoluteLink = getAbsoluteLink(link, getHost(link));
-    QString request_replaced;
-    QString contentType;
-
-    logger.info("Entered SpiderTree dumper builder, absolute link: " + absoluteLink.toStdString());
-
-    if(depth == 0) return;
-
-    globalLinks->push_back(removeWWW(absoluteLink));
-
-    // Creates raw path
-    std::string rawpath = dirpath.toStdString() + "/" + getURL(link).toStdString();
-
+QString SpiderDumper::getFileName(QString rawpath){
     // Split folder from filename
-    size_t index = rawpath.find_last_of("/");
-    std::string folder = rawpath.substr(0,index+1);
-    std::string filename = rawpath.substr(index+1);
+    size_t index = rawpath.toStdString().find_last_of("/");
+    return QString::fromStdString(rawpath.toStdString().substr(index+1));
+}
 
-    // If filename is empty put index.html
-    if(filename == ""){
-        filename = "index.html";
-    }
+QString SpiderDumper::getFolderName(QString rawpath){
+    size_t index = rawpath.toStdString().find_last_of("/");
+    return QString::fromStdString(rawpath.toStdString().substr(0,index+1));
+}
+
+QString SpiderDumper::getFileExtension(QString rawpath){
+    // Find for last .
+    size_t index = rawpath.toStdString().find_last_of(".");
+
+    // No . found, than no extension
+    if(index == std::string::npos) return "";
+
+    // Return extension
+    return QString::fromStdString(rawpath.toStdString().substr(index+1));
+}
+
+void SpiderDumper::dump(SpiderTree tree, QString dir){
+    dumpRecursive(tree, dir);
+}
+
+void SpiderDumper::saveToFile(QString folder, QString filename, QByteArray content){
+
+    // Do not create empty files
+    if(content.size() == 0) return;
+
+    // Creates real path
+    QString path = folder + filename;
 
     // Creates intermediate folders
-    QDir dir(QString::fromStdString(folder));
+    QDir dir(folder);
     if(!dir.exists()){
         dir.mkpath(".");
     }
-
-    // Creates real path
-    QString path = QString::fromStdString(folder) + QString::fromStdString(filename);
 
     // Opens file
     QFile file(path);
@@ -152,31 +194,51 @@ void SpiderDumper::dump(QString link, QString host, int depth, QStringList *glob
         return;
     }
 
-    logger.info("Dump to " + path.toStdString());
+    file.write(content);
+    file.close();
+}
 
-    if((get(link, &request, &contentType)) < 0){
-        logger.error("Unable to GET from website");
-        return;
+void SpiderDumper::dumpRecursive(SpiderTree node, QString dirPath){
+    QString absoluteLink = getAbsoluteLink(node.getLink(), getHost(node.getLink()));
+    QString request_replaced;
+    QString contentType;
+
+    logger.info("Entered SpiderTree dumper builder, absolute link: " + absoluteLink.toStdString());
+
+    // Creates raw path
+    QString rawpath = dirPath + "/" + getURL(node.getLink());
+
+    // Split folder from filename
+    QString folder = getFolderName(rawpath);
+    QString filename = getFileName(rawpath);
+
+    // If filename is empty put index.html
+    if(filename == ""){
+        filename = "index.html";
     }
+
+    logger.info("Dump to " + (folder + filename).toStdString());
 
     // Fix references if html file and saves to file
-    if(contentType == "text/html"){
-        request_replaced = extract_and_fix_references(request, &links, getURL(link));
-        file.write(request_replaced.toStdString().c_str());
-    }
-
-    // Do not look for references if not html file
-    else {
-        file.write(request);
-    }
-
-    file.close();
-
-    for(auto it = links.begin() ; it != links.end() ; ++it){
-        QString absoluteLink = getAbsoluteLink((*it), getHost(link));
-        if(!globalLinks->contains(removeWWW(absoluteLink)) && sameHost(host, absoluteLink)){
-            dump(absoluteLink, host, depth-1, globalLinks, dirpath);
+    if(node.getContentType() == "text/html"){
+        // If no extension but text/html, then we add .html
+        if(getFileExtension(filename) == ""){
+            filename += ".html";
         }
+        request_replaced = fix_references(node.getData(), getURL(node.getLink()));
+
+        saveToFile(folder, filename, request_replaced.toStdString().c_str());
+    }
+
+    // Do not fix references if not html file
+    else {
+        saveToFile(folder, filename, node.getData());
+    }
+
+
+    // Dump its children
+    for(auto it = node.getNodes()->begin() ; it != node.getNodes()->end() ; ++it){
+        dumpRecursive((*it), dirPath);
     }
 
     return;
@@ -204,6 +266,16 @@ QString SpiderDumper::getURL(QString link){
 QString SpiderDumper::getURL_relative(QString link, QString url){
     QRegularExpression re("(?:https?://)?.*?(?=\\.\\.|/)/*(.*)");
     QRegularExpressionMatch match = re.match(link);
+
+    if(getFileName(link) == ""){
+        link = getFolderName(link) + "index.html";
+    }
+
+    // If no extension, then we add .html (how to know if its poiting to html content?)
+    if(getFileExtension(link) == ""){
+        link += ".html";
+    }
+
     if(link.size() >= 1 && link[0] == "/"){
         return buildBackDir(url.count("/")) + link.mid(1);
     }
@@ -249,7 +321,7 @@ QString SpiderDumper::buildBackDir(int backs){
     return ret;
 }
 
-QString SpiderDumper::extract_and_fix_references(QString request, QStringList *links, QString url){
+QString SpiderDumper::fix_references(QString request, QString url){
     QString ret = request;
     QRegularExpression re("(?:href|src)\\s*=\\s*[\"|']([^\"']*)[\"']");
     QRegularExpressionMatchIterator match_i = re.globalMatch(request);
@@ -267,9 +339,6 @@ QString SpiderDumper::extract_and_fix_references(QString request, QStringList *l
         offset += fixed_link.size() - link.size();
 
         ret = prefix + fixed_link + suffix;
-
-        if(!(*links).contains(link))
-            *links << link;
 
     }
     return ret;
@@ -297,7 +366,10 @@ int SpiderDumper::con(QString host, int *website_fd){
     struct timeval tv;
     tv.tv_sec = 5;
     tv.tv_usec = 0;
-    setsockopt(*website_fd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
+    if (setsockopt(*website_fd, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char*>(&tv), sizeof tv) != 0) {
+      logger.error("Failed to configure server socket timeout!");
+      return -1;
+    }
 
     // Get IP address
     website_ip_data = gethostbyname(host.toStdString().c_str());
@@ -362,7 +434,7 @@ int SpiderDumper::get(QString link, QByteArray *ret, QString *contentType){
     if(headers.contains("Content-Length")){
         length = headers["Content-Length"].first().toInt();
         while(size_read < length){
-            //logger.info("Reading extra data from website [" + to_string(size_read) + "/" + to_string(length) + "]");
+            logger.info("Reading extra data from website [" + to_string(size_read) + "/" + to_string(length) + "]");
             single_read = read_socket(website_fd, buffer+size_read,
                                       max_size - static_cast<size_t> (size_read));
 

@@ -27,6 +27,9 @@ int Server::init() {
   // Variable declaration:
   int opt = 1;
   struct sockaddr_in client_addr;
+  struct timeval tv;
+  tv.tv_sec = 5;
+  tv.tv_usec = 0;
 
   // Configure address on client side
   config_client_addr(&client_addr);
@@ -41,6 +44,12 @@ int Server::init() {
   if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt,
                  sizeof(opt)) != 0) {
     logger.error("Failed to configure server socket options!");
+    return -1;
+  }
+
+  // Configure timeout
+  if (setsockopt(server_fd, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char*>(&tv), sizeof tv) != 0) {
+    logger.error("Failed to configure server socket timeout!");
     return -1;
   }
 
