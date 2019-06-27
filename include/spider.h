@@ -25,6 +25,8 @@ class SpiderTree {
     public:
         SpiderTree(QString);
         void appendNode(SpiderTree);
+        list<SpiderTree> *getNodes();
+        QString getLink();
         QString prettyPrint();
 };
 
@@ -36,18 +38,22 @@ class SpiderDumper : public QObject {
     MessageLogger logger;
 
 
-    int get(QString, QByteArray *ret);
+    int get(QString, QByteArray *, QString *);
     int con(QString, int *);
     QStringList extract_links(QString);
     QStringList extract_references(QString);
     QString getAbsoluteLink(QString, QString);
     QString getURL(QString);
+    QString getURL_relative(QString, QString);
     QString getHost(QString);
-    SpiderTree buildSpiderTree(QString, QString, int, QStringList *);
+    void buildSpiderTree(SpiderTree *, QString, QString, int, QStringList *);
     void dump(QString, QString, int, QStringList *, QString);
     bool sameHost(QString, QString);
     QString removeWWW(QString);
     QString removeSquare(QString);
+    QString extract_and_fix_references(QString, QStringList *, QString url);
+    QString buildBackDir(int);
+
 
     public:
         SpiderDumper();

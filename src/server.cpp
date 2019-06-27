@@ -464,7 +464,7 @@ int Server::update_requests(connection *client, connection *website){
 
       // Save original request data:
       parser.parseRequest(website->buffer.content, website->buffer.size);
-      original_header = parser.requestHeaderToQString();
+      original_header = parser.answerHeaderToQString();
       original_data = QByteArray(parser.getData(), parser.getDataSize());
 
       // If there were no edits, continue:
