@@ -9,11 +9,13 @@
 #include <QObject>
 #include <QThread>
 #include <QTextEdit>
+#include <QFileDialog>
 
 // User includes:
 #include "include/message_logger.h"
 #include "include/server.h"
 #include "include/spider.h"
+#include "include/qhexedit/qhexedit.h"
 
 // Namespace:
 namespace Ui {
@@ -36,9 +38,15 @@ class MainWindow : public QMainWindow {
   private slots:
     void on_button_gate_clicked();
     void on_spider_push_clicked();
+    void on_dumper_push_clicked();
+    void setClientData(QString, QByteArray);
+    void setWebsiteData(QString, QByteArray);
+    void clearClientData();
+    void clearWebsiteData();
 
   signals:
     void start_spider(QString);
+    void start_dumper(QString, QString);
 
   private:
     // Classes:
@@ -46,9 +54,12 @@ class MainWindow : public QMainWindow {
     MessageLogger logger;
     QThread *server_t;
     Server *server;
+    QHexEdit *text_client;
+    QHexEdit *text_website;
+
 
     QThread *tools_t;
-    Spider *spider;
+    SpiderDumper *spider;
 
     // Methods:
     in_port_t server_port();

@@ -141,7 +141,6 @@ bool HTTPParser::validRequestHeader(QString header) {
     }
 
     return true;
-
 }
 
 bool HTTPParser::parseCommandLine(QString line, QString *method, QString *url, QString *version){
@@ -303,6 +302,11 @@ Headers HTTPParser::getHeaders(){
     return this->headers;
 }
 
+// Getter for headers
+int HTTPParser::getHeadersSize(){
+    return this->splitted.header.size();
+}
+
 // Public method that parsers a request
 bool HTTPParser::parseRequest(char *request, ssize_t size){
     return this->parse(request, size);
@@ -369,4 +373,25 @@ QString HTTPParser::requestHeaderToQString() {
 
   return ret;
 
+}
+
+QByteArray HTTPParser::requestBuffer(){
+    QByteArray ret;
+    ret.append(this->requestHeaderToQString());
+    ret.append(this->getData(), static_cast<int>(this->getDataSize()));
+    return ret;
+}
+
+
+QByteArray HTTPParser::answerBuffer(){
+    QByteArray ret;
+    ret.append(this->answerHeaderToQString());
+    ret.append(this->getData(), static_cast<int>(this->getDataSize()));
+    return ret;
+}
+
+void HTTPParser::updateContentLength(){
+    if(this->headers.contains("Content-Length")){
+        this->headers["Content-Length"][0] = QString::fromStdString(std::to_string(this->splitted.body_size));
+    }
 }

@@ -16,6 +16,18 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),
   connect(&logger, SIGNAL (sendMessage(QString)), ui->logTextEdit,
           SLOT (append(QString)));
 
+  // Create client hexedit
+  text_client = new QHexEdit;
+  text_client->setOverwriteMode(false);
+  text_client->setDynamicBytesPerLine(true);
+  ui->request_box->addWidget(text_client);
+
+  // Create website hexedit
+  text_website = new QHexEdit;
+  text_website->setOverwriteMode(false);
+  text_website->setDynamicBytesPerLine(true);
+  ui->reply_box->addWidget(text_website);
+
   // Functionality configuration:
   start_server();
   start_tools();
@@ -23,6 +35,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),
 }
 
 MainWindow::~MainWindow() {
+
+  // Clean up qhexedits
+  delete text_client;
+  delete text_website;
 
   // Clean up the UI:
   delete ui;
@@ -66,7 +82,7 @@ void MainWindow::start_tools() {
 
   // Initialize classes:
   tools_t = new QThread;
-  spider = new Spider;
+  spider = new SpiderDumper;
 
   // Move classes to the thread:
   spider->moveToThread(tools_t);
@@ -116,17 +132,17 @@ void MainWindow::config_server_thread() {
   connect(server, SIGNAL (logMessage(QString)), ui->logTextEdit,
           SLOT (append(QString)));
 
-  // Configure the client request to be displayed:
-  connect(server, SIGNAL (clientHeader(QString)), ui->text_client,
-          SLOT (setPlainText(QString)));
+  // Configure the client request body to be displayed:
+  connect(server, SIGNAL (clientData(QString, QByteArray)), this,
+          SLOT (setClientData(QString, QByteArray)));
 
   // Configure the website request to be displayed:
-  connect(server, SIGNAL (websiteHeader(QString)), ui->text_website,
-          SLOT (setPlainText(QString)));
+  connect(server, SIGNAL (websiteData(QString, QByteArray)), this,
+          SLOT (setWebsiteData(QString, QByteArray)));
 
   // Configure the gate to erase both requests displayed in text boxes:
-  connect(server, SIGNAL (gateOpened()), ui->text_client, SLOT (clear()));
-  connect(server, SIGNAL (gateOpened()), ui->text_website, SLOT (clear()));
+  connect(server, SIGNAL (gateOpened()), this, SLOT (clearClientData()));
+  connect(server, SIGNAL (gateOpened()), this, SLOT (clearWebsiteData()));
 
   // The server thread should start the server:
   connect(server_t, SIGNAL (started()), server, SLOT (run()));
@@ -145,7 +161,10 @@ void MainWindow::config_server_thread() {
 void MainWindow::config_tools_thread() {
 
   // Configure spider thread to run when user clicks the button:
-  connect(this, SIGNAL(start_spider(QString)), spider, SLOT(execute(QString)));
+  connect(this, SIGNAL(start_spider(QString)), spider, SLOT(spider(QString)));
+
+  // Configure spider thread to run dumper when user clicks the button:
+  connect(this, SIGNAL(start_dumper(QString, QString)), spider, SLOT(dumper(QString, QString)));
 
   // Configure spider logger:
   connect(spider, SIGNAL(updateLog(QString)), ui->spider_log, SLOT(append(QString)));
@@ -168,11 +187,37 @@ void MainWindow::config_tools_thread() {
 
 // Private slots:
 void MainWindow::on_button_gate_clicked() {
-  server->load_client_header(ui->text_client->toPlainText());
-  server->load_website_header(ui->text_website->toPlainText());
+    // !TODO: Fix to add headers
+  server->load_client_header(ui->request_headers->toPlainText(), text_client->data());
+  server->load_website_header(ui->reply_headers->toPlainText(), text_website->data());
   server->open_gate();
 }
 
 void MainWindow::on_spider_push_clicked() {
   emit start_spider(ui->spider_host->text());
+}
+
+void MainWindow::on_dumper_push_clicked() {
+  QString dir = QFileDialog::getExistingDirectory(this, tr("Escolha uma pasta"), ".", QFileDialog::ShowDirsOnly);
+  emit start_dumper(ui->spider_host->text(), dir);
+}
+
+void MainWindow::setClientData(QString headers, QByteArray data){
+    text_client->setData(data);
+    ui->request_headers->setText(headers);
+}
+
+void MainWindow::setWebsiteData(QString headers, QByteArray data){
+    text_website->setData(data);
+    ui->reply_headers->setText(headers);
+}
+
+void MainWindow::clearClientData(){
+    text_client->setData(QByteArray());
+    ui->request_headers->clear();
+}
+
+void MainWindow::clearWebsiteData(){
+    text_website->setData(QByteArray());
+    ui->reply_headers->clear();
 }

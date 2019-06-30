@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>836</width>
+    <width>1207</width>
     <height>625</height>
    </rect>
   </property>
@@ -28,7 +28,7 @@
      <rect>
       <x>10</x>
       <y>10</y>
-      <width>811</width>
+      <width>1171</width>
       <height>581</height>
      </rect>
     </property>
@@ -42,9 +42,9 @@
      <widget class="QWidget" name="gridLayoutWidget">
       <property name="geometry">
        <rect>
-        <x>50</x>
+        <x>10</x>
         <y>20</y>
-        <width>741</width>
+        <width>1151</width>
         <height>501</height>
        </rect>
       </property>
@@ -61,7 +61,7 @@
         </layout>
        </item>
        <item row="12" column="0">
-        <layout class="QVBoxLayout" name="verticalLayout">
+        <layout class="QVBoxLayout" name="request_box">
          <item>
           <widget class="QLabel" name="label">
            <property name="text">
@@ -70,12 +70,16 @@
           </widget>
          </item>
          <item>
-          <widget class="QPlainTextEdit" name="text_client"/>
+          <widget class="QTextBrowser" name="request_headers">
+           <property name="readOnly">
+            <bool>false</bool>
+           </property>
+          </widget>
          </item>
         </layout>
        </item>
        <item row="12" column="1">
-        <layout class="QVBoxLayout" name="verticalLayout_6">
+        <layout class="QVBoxLayout" name="reply_box">
          <item>
           <widget class="QLabel" name="label_6">
            <property name="text">
@@ -84,7 +88,11 @@
           </widget>
          </item>
          <item>
-          <widget class="QPlainTextEdit" name="text_website"/>
+          <widget class="QTextBrowser" name="reply_headers">
+           <property name="readOnly">
+            <bool>false</bool>
+           </property>
+          </widget>
          </item>
         </layout>
        </item>
@@ -117,15 +125,15 @@
     </widget>
     <widget class="QWidget" name="tab_4">
      <attribute name="title">
-      <string>Spider</string>
+      <string>Tools</string>
      </attribute>
      <widget class="QWidget" name="verticalLayoutWidget">
       <property name="geometry">
        <rect>
         <x>30</x>
         <y>30</y>
-        <width>741</width>
-        <height>471</height>
+        <width>1101</width>
+        <height>491</height>
        </rect>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -142,11 +150,28 @@
           <widget class="QLineEdit" name="spider_host"/>
          </item>
          <item>
-          <widget class="QPushButton" name="spider_push">
-           <property name="text">
-            <string>Generate tree</string>
+          <layout class="QHBoxLayout" name="horizontalLayout">
+           <property name="leftMargin">
+            <number>0</number>
            </property>
-          </widget>
+           <property name="topMargin">
+            <number>0</number>
+           </property>
+           <item>
+            <widget class="QPushButton" name="spider_push">
+             <property name="text">
+              <string>Generate tree</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="dumper_push">
+             <property name="text">
+              <string>Dump</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
          </item>
          <item>
           <widget class="QTextEdit" name="spider_tree"/>

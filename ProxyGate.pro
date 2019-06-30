@@ -32,7 +32,10 @@ SOURCES += \
         src/message_logger.cpp \
         src/server.cpp \
         src/socket.cpp \
-        src/spider.cpp
+        src/spider.cpp \
+        src/qhexedit/qhexedit.cpp \
+        src/qhexedit/commands.cpp \
+        src/qhexedit/chunks.cpp
 
 HEADERS += \
         include/httpparser.h \
@@ -40,7 +43,10 @@ HEADERS += \
         include/message_logger.h \
         include/server.h \
         include/socket.h \
-        include/spider.h
+        include/spider.h \
+        include/qhexedit/qhexedit.h \
+        include/qhexedit/commands.h \
+        include/qhexedit/chunks.h
 
 FORMS += \
         form/mainwindow.ui
