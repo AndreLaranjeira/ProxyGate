@@ -33,9 +33,9 @@ SOURCES += \
         src/server.cpp \
         src/socket.cpp \
         src/spider.cpp \
-    src/qhexedit/qhexedit.cpp \
-    src/qhexedit/commands.cpp \
-    src/qhexedit/chunks.cpp
+        src/qhexedit/qhexedit.cpp \
+        src/qhexedit/commands.cpp \
+        src/qhexedit/chunks.cpp
 
 HEADERS += \
         include/httpparser.h \
@@ -44,9 +44,9 @@ HEADERS += \
         include/server.h \
         include/socket.h \
         include/spider.h \
-    include/qhexedit/qhexedit.h \
-    include/qhexedit/commands.h \
-    include/qhexedit/chunks.h
+        include/qhexedit/qhexedit.h \
+        include/qhexedit/commands.h \
+        include/qhexedit/chunks.h
 
 FORMS += \
         form/mainwindow.ui
