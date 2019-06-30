@@ -22,3 +22,7 @@ um arquivo executável _ProxyGate_.
 ## Modo de uso
 1) Execute o comando `./ProxyGate [Número de porta]` para que o proxy seja
 inicializado.
+
+## Documentação
+
+O projeto foi documentado utilizando-se o programa _doxygen_. Para gerar a documentação do projeto, basta executar o comando `doxygen Doxyfile`. O _doxygen_ deve gerar a documentação do projeto na pasta _doc_, tanto no formato HTML quanto no formato Latex.
