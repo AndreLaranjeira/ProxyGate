@@ -1,3 +1,11 @@
+/**
+ * @file httpparser.cpp
+ * @brief HTTP parser - Source code.
+ *
+ * Implementation of all private and public method of HTTPParser class
+ */
+
+
 #include "include/httpparser.h"
 
 /**

@@ -1,4 +1,14 @@
+/**
+ * @file spider.cpp
+ * @brief Spider and Dumper - Source code.
+ *
+ * Implementation of all private and public method of SpiderDumper
+ * class and SpiderTree class
+ */
+
 #include "include/spider.h"
+
+// Function implementations:
 
 /**
  * @fn SpiderDumper::SpiderDumper()
@@ -6,6 +16,7 @@
  *
  * Instanciates and connects its logger to mainwindow
  */
+
 SpiderDumper::SpiderDumper() : logger("SpiderDumper"){
     connect(&logger, SIGNAL (sendMessage(QString)), this,
             SIGNAL (updateLog(QString)));

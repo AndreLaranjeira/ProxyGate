@@ -19,6 +19,11 @@
 #include <QObject>
 
 #include "include/message_logger.h"
+
+/**
+ * @macro HTTP_BUFFER_SIZE
+ * @brief Maximum size for every request and response on system
+ */
 #define HTTP_BUFFER_SIZE 1048576
 
 /**
