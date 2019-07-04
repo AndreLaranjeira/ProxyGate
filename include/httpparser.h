@@ -1,3 +1,14 @@
+/**
+ * @file httpparser.h
+ * @brief HTTP parser module - Header file.
+ *
+ * This module implements HTTP parser, it creates a data structure
+ * containing a hashmap for each header, the method of request, response
+ * code, url and description. This module offers access methods for
+ * those fields and renders back the HTTP data as QByteArray
+ *
+ */
+
 #ifndef HTTPPARSER_H
 #define HTTPPARSER_H
 
@@ -10,22 +21,35 @@
 #include "include/message_logger.h"
 #define HTTP_BUFFER_SIZE 1048576
 
-// Enum that describes allowed states for Parser
+/**
+ * @enum ParserState
+ * @brief Enum that describes allowed states for Parser
+ */
 typedef enum {
     COMMANDLINE,
     HEADERLINE
 } ParserState;
 
+/**
+ * @struct HeaderBodyPair
+ * @brief Internal HTTP Parser struct that splits headers section from body section
+ */
 typedef struct HeaderBodyPair {
     QString header;
     char body[HTTP_BUFFER_SIZE+1];
     size_t body_size;
 } HeaderBodyPair;
 
-// Typedef to abstract Headers hash
+/**
+ * @typedef Headers
+ * @brief Hashmap that takes header name and gives a list of values
+ */
 typedef QHash<QString,QList<QString>> Headers;
 
-// HTTPParser class that implements parser for HTTP requests
+/**
+ * @class HTTPParser
+ * @brief HTTPParser class that implements parser for HTTP requests
+ */
 class HTTPParser : public QObject {
     Q_OBJECT
 
