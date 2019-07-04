@@ -1,3 +1,12 @@
+/**
+ * @file spider.h
+ * @brief Spider module - Header file.
+ *
+ * This module implements spider, a tool that build a tree with all links
+ * from a website recursivelly
+ *
+ */
+
 #ifndef SPIDER_H
 #define SPIDER_H
 
@@ -15,8 +24,22 @@
 #include "include/message_logger.h"
 #include "include/httpparser.h"
 
+/**
+ * @macro SPIDER_TREE_DEPTH
+ * @brief Maximum depth for spider tree and dumper
+ */
 #define SPIDER_TREE_DEPTH 2
 
+/**
+ * @class SpiderTree
+ * @brief Node of tree
+ *
+ * The node contains a list of children nodes, its own link
+ * raw data from its webpage and the content type of raw data.
+ *
+ * The class has several access methods and others such as prettyprinter
+ * and appendnode that add a node as child
+ */
 class SpiderTree {
     private:
         list<SpiderTree> nodes;
@@ -36,6 +59,14 @@ class SpiderTree {
         QString getContentType();
 };
 
+/**
+ * @class SpiderDumper
+ * @brief Class that implements logic for spider and dumper tool
+ *
+ * This class implements the dump methods, methods that fix
+ * references in HTML document, creates a SpiderTree, save data
+ * to files, send a GET request and receive.
+ */
 class SpiderDumper : public QObject {
 
     Q_OBJECT
