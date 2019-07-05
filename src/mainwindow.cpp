@@ -188,8 +188,8 @@ void MainWindow::config_tools_thread() {
 // Private slots:
 void MainWindow::on_button_gate_clicked() {
     // !TODO: Fix to add headers
-  server->load_client_header(ui->request_headers->toPlainText(), text_client->data());
-  server->load_website_header(ui->reply_headers->toPlainText(), text_website->data());
+  server->load_client_request(ui->request_headers->toPlainText(), text_client->data());
+  server->load_website_request(ui->reply_headers->toPlainText(), text_website->data());
   server->open_gate();
 }
 
