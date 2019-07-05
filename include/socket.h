@@ -1,5 +1,15 @@
 // Socket module - Header file.
 
+/**
+ * @file socket.h
+ * @brief Socket module - Header file.
+ *
+ * The socket module contains function wrappers and small abstractions of
+ * socket related functionalities. This header file contains a header guard,
+ * library includes and the function headers for this module.
+ *
+ */
+
 // Header guard:
 #ifndef SOCKET_H
 #define SOCKET_H

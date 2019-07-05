@@ -1,9 +1,40 @@
 // Server module - Source code.
 
+/**
+ * @file server.cpp
+ * @brief Server module - Source code.
+ *
+ * The server module contains the implementation of a proxy server class and
+ * the definition of macros and data structures related to general server
+ * functionalities and specific functions implemented by the proxy server
+ * class. This source file contains the class method implementations for this
+ * module.
+ *
+ */
+
 // Includes:
 #include "include/server.h"
 
 // Class methods:
+
+/**
+ * @fn Server::Server(in_port_t port_number)
+ * @brief Class constructor for the Server class.
+ * @param port_number Local port number used by the proxy server.
+ *
+ * This constructor creates a new instance of the Server class. Each instance
+ * has a port_number argument that configures the local port number used by the
+ * server class.
+ *
+ * The server class contains an instance of a MessageLogger class
+ * and an instance of a HTTPParser class, both of which have their message log
+ * signal connected to the logMessage(QString) signal used by the server.
+ *
+ * This method logs a message with port number in which the server was
+ * configured.
+ *
+ */
+
 Server::Server(in_port_t port_number) : port_number(port_number), logger("Server") {
 
   // Connect message loggers:
@@ -17,11 +48,34 @@ Server::Server(in_port_t port_number) : port_number(port_number), logger("Server
 
 }
 
+/**
+ * @fn Server::~Server()
+ * @brief Class destructor for the Server class.
+ *
+ * This destructor destroys an instance of the Server class. It is currently
+ * empty!
+ *
+ */
+
 Server::~Server() {
 
 }
 
 // Public methods:
+
+/**
+ * @fn int Server::init()
+ * @brief Method to initialize the Server internal variables.
+ * @return Returns 0 when the successfully executed and -1 if an error occurs.
+ *
+ * This method initializes the server socket used to handle client connections
+ * and the client address information. You should always call this method
+ * BEFORE atempting to run the server. If the server socket could not be
+ * configured properly, this method will return -1 and log an error message
+ * explaining what went wrong.
+ *
+ */
+
 int Server::init() {
 
   // Variable declaration:
@@ -75,21 +129,74 @@ int Server::init() {
 
 }
 
-void Server::load_client_header(QString new_headers, QByteArray new_data) {
+/**
+ * @fn void Server::load_client_request(QString new_headers, QByteArray new_data)
+ * @brief Method to load an updated client request into the Server.
+ * @param new_headers New headers for the client request.
+ * @param new_data New data for the client request.
+ *
+ * This method is used to update the client request inside the Server to
+ * reflect the changes made by an user. It is called from the MainWindow class
+ * after an user edits the client request.
+ *
+ */
+
+void Server::load_client_request(QString new_headers, QByteArray new_data) {
   new_client_data = new_data;
   new_client_headers = new_headers;
   new_client_headers.replace('\n', "\r\n");   // Adjust line endings.
 }
 
-void Server::load_website_header(QString new_headers, QByteArray new_data) {
+/**
+ * @fn void Server::load_website_request(QString new_headers, QByteArray new_data)
+ * @brief Method to load an updated website request into the Server.
+ * @param new_headers New headers for the website request.
+ * @param new_data New data for the website request.
+ *
+ * This method is used to update the website request inside the Server to
+ * reflect the changes made by an user. It is called from the MainWindow class
+ * after an user edits the website request.
+ *
+ */
+
+void Server::load_website_request(QString new_headers, QByteArray new_data) {
   new_website_data = new_data;
   new_website_headers = new_headers;
   new_website_headers.replace('\n', "\r\n");   // Adjust line endings.
 }
 
+/**
+ * @fn void Server::open_gate()
+ * @brief Method to open the Server gate.
+ *
+ * This method opens the Server gate, allowing a pending HTTP request from the
+ * client or the website to be sent to a website or the client, respectively.
+ *
+ */
+
 void Server::open_gate() {
   set_gate_closed(false);
 }
+
+/**
+ * @fn void Server::run()
+ * @brief Slot method for the Server to start handling client connections.
+ *
+ * This method is used for the Server to start accepting and handling client
+ * connections. It is the main function of the Server, starting the execution
+ * of server tasks and counting the number of runtime errors encountered during
+ * the server execution.
+ *
+ * Calling the method stop() will stop the Server from executing new tasks,
+ * ending this method. Once this method ends, the Server emits the finished()
+ * signal, signaling it has finished it's execution and is ready to be deleted.
+ *
+ * Being a slot, the execution of this method can be connected to the arrival
+ * of a signal.
+ *
+ * Important: You must call the init() method BEFORE calling this method!
+ *
+ */
 
 void Server::run() {
 
@@ -116,6 +223,19 @@ void Server::run() {
 
 }
 
+/**
+ * @fn void Server::stop()
+ * @brief Slot method to stop the execution of the Server.
+ *
+ * This method is used to stop the execution of the Server. It closes the
+ * Server socket allocated in the init() method and stops the execution of the
+ * run() method, which will generate the emission of a finished() signal.
+ *
+ * Being a slot, the execution of this method can be connected to the arrival
+ * of a signal
+ *
+ */
+
 void Server::stop() {
 
   // Close the connections:
@@ -130,6 +250,17 @@ void Server::stop() {
 }
 
 // Private methods:
+
+/**
+ * @fn bool Server::is_gate_closed()
+ * @brief Method to check the value of the control variable gate_closed.
+ * @return Value of the control variable gate_closed.
+ *
+ * This method returns the current value of the control variable gate_closed
+ * using the QMutex gate_mutex.
+ *
+ */
+
 bool Server::is_gate_closed() {
   bool aux;
   gate_mutex.lock();
@@ -138,6 +269,16 @@ bool Server::is_gate_closed() {
   return aux;
 }
 
+/**
+ * @fn bool Server::is_program_running()
+ * @brief Method to check the value of the control variable 'running'.
+ * @return Value of the control variable 'running'.
+ *
+ * This method returns the current value of the control variable 'running'
+ * using the QMutex run_mutex.
+ *
+ */
+
 bool Server::is_program_running() {
   bool aux;
   run_mutex.lock();
@@ -145,6 +286,21 @@ bool Server::is_program_running() {
   run_mutex.unlock();
   return aux;
 }
+
+/**
+ * @fn int Server::await_connection(connection *client)
+ * @brief Method used by the Server to wait for a client connection.
+ * @param client Address of a struct to store the client connection info.
+ * @return Returns 0 when the successfully executed and -1 if an error occurs.
+ *
+ * This method is used by the Server to wait for a client connection. Given
+ * that this is the first task to be executed by the Server, an error caused in
+ * others tasks usually leads back to this task.
+ *
+ * If this task is executed succesfully, the next task to be executed will be
+ * READ_FROM_CLIENT.
+ *
+ */
 
 int Server::await_connection(connection *client) {
 
@@ -176,6 +332,24 @@ int Server::await_connection(connection *client) {
 
 }
 
+/**
+ * @fn int Server::await_gate()
+ * @brief Method used by the Server to wait for the request gate to open.
+ * @return Returns 0 when the successfully executed.
+ *
+ * This method is used by the Server to wait for the request gate to open.
+ * While the gate does not open, the Server is stuck in busy waiting. When the
+ * request gate is opened, the Server emits a gateOpened() signal and closes
+ * the request gate again.
+ *
+ * If this task is executed successfully, the next task to be executed will be
+ * UPDATE_REQUESTS.
+ *
+ * Important: If another thread or process does not call the open_gate()
+ * method, the Server will be STUCK in busy waiting.
+ *
+ */
+
 int Server::await_gate() {
 
   logger.info("Awaiting for gate to open!");
@@ -196,6 +370,22 @@ int Server::await_gate() {
   return 0;
 
 }
+
+/**
+ * @fn int Server::connect_to_website(connection *client, connection *website)
+ * @brief Method used by the Server to connect to a website.
+ * @param client Address of a struct to store the client connection info.
+ * @param website Address of a struct to store the website connection info.
+ * @return Returns 0 when the successfully executed and -1 if an error occurs.
+ *
+ * This method is used by the Server to connect to a website specified in a
+ * client request. It creates a socket for the website connection, obtains the
+ * website IP and tries to connect to it.
+ *
+ * If this task is executed succesfully, the next task to be executed will be
+ * SEND_TO_WEBSITE.
+ *
+ */
 
 int Server::connect_to_website(connection *client, connection *website){
     struct hostent *website_IP_data;
@@ -235,6 +425,26 @@ int Server::connect_to_website(connection *client, connection *website){
     return 0;
 
 }
+
+/**
+ * @fn int Server::execute_task(ServerTask task, connection *client, connection
+ * *website)
+ * @brief Method used by the Server to handle task execution.
+ * @param task Task to be executed by the Server.
+ * @param client Address of a struct to store the client connection info.
+ * @param website Address of a struct to store the website connection info.
+ * @return Returns the value returned by the task method executed.
+ *
+ * This method is used by the Server to figure out which method to execute
+ * given a certain task. For each possible task, an underlying method call is
+ * made with the proper parameters and the return code it generates is
+ * returned by this function.
+ *
+ * If an underlying method call returns an error code, this method calls the
+ * handle_error method and configures the next task to be executed to be
+ * AWAIT_CONNECTION, reseting the finite state machine.
+ *
+ */
 
 int Server::execute_task(ServerTask task, connection *client,
                          connection *website) {
@@ -278,6 +488,23 @@ int Server::execute_task(ServerTask task, connection *client,
 
 }
 
+/**
+ * @fn int Server::read_from_client(connection *client)
+ * @brief Method used by the Server to read data from the client.
+ * @param client Address of a struct to store the client connection info.
+ * @return Returns 0 when the successfully executed and -1 if an error occurs.
+ *
+ * This method is used by the Server to read data from the client socket. It
+ * stores the data read and it's size in the struct specified by the 'client'
+ * parameter.
+ *
+ * If this task is executed succesfully, the next task to be executed will be
+ * AWAIT_GATE, the last_read control variable is set to CLIENT and the signals
+ * clientData(QString) and newHost(QString) are emitted, specifying the data
+ * read from the client and the host in the client request.
+ *
+ */
+
 int Server::read_from_client(connection *client) {
 
   // Client sent data:
@@ -301,6 +528,25 @@ int Server::read_from_client(connection *client) {
   }
 
 }
+
+/**
+ * @fn int Server::read_from_website(connection *website)
+ * @brief Method used by the Server to read data from the client.
+ * @param website Address of a struct to store the website connection info.
+ * @return Returns 0 when the successfully executed and -1 if an error occurs.
+ *
+ * This method is used by the Server to read data from the website socket. It
+ * stores the data read and it's size in the struct specified by the 'website'
+ * parameter. This method behaves differently depending on the header values
+ * read from the website request.
+ *
+ * If this task is executed succesfully, the next task to be executed will be
+ * AWAIT_GATE, the last_read control variable is set to WEBSITE and the signals
+ * websiteData(QString) and newHost(QString) are emitted, specifying the data
+ * read from the website and the host in the website request. Also, the success
+ * of this method causes the website socket to be closed.
+ *
+ */
 
 int Server::read_from_website(connection *website){
 
@@ -370,6 +616,21 @@ int Server::read_from_website(connection *website){
 
 }
 
+/**
+ * @fn int Server::send_to_client(connection *client, connection *website)
+ * @brief Method used by the Server to send data to the client.
+ * @param client Address of a struct to store the client connection info.
+ * @param website Address of a struct to store the website connection info.
+ * @return Returns 0 when the successfully executed and -1 if an error occurs.
+ *
+ * This method is used by the Server to send data to the client socket. The
+ * data is taken from the 'website' struct pointer.
+ *
+ * If this task is executed succesfully, the next task to be executed will be
+ * AWAIT_CONNECTION and the client socket is closed.
+ *
+ */
+
 int Server::send_to_client(connection *client, connection *website){
     logger.info("Sending message to client");
 
@@ -384,6 +645,21 @@ int Server::send_to_client(connection *client, connection *website){
     return 0;
 
 }
+
+/**
+ * @fn int Server::send_to_website(connection *client, connection *website)
+ * @brief Method used by the Server to send data to the website.
+ * @param client Address of a struct to store the client connection info.
+ * @param website Address of a struct to store the website connection info.
+ * @return Returns 0 when the successfully executed and -1 if an error occurs.
+ *
+ * This method is used by the Server to send data to the website socket. The
+ * data is taken from the 'client' struct pointer.
+ *
+ * If this task is executed succesfully, the next task to be executed will be
+ * READ_FROM_WEBSITE.
+ *
+ */
 
 int Server::send_to_website(connection *client, connection *website){
 
@@ -400,6 +676,30 @@ int Server::send_to_website(connection *client, connection *website){
     return 0;
 
 }
+
+/**
+ * @fn int Server::update_requests(connection *client, connection *website)
+ * @brief Method used by the Server to update requests based on user edits.
+ * @param client Address of a struct to store the client connection info.
+ * @param website Address of a struct to store the website connection info.
+ * @return Returns 0 when the successfully executed.
+ *
+ * This method is used by the Server to update the header and data contained in
+ * both the client and website requests based on the modifications made by the
+ * user. If no modifications are made, the method just updates the next_task
+ * control variable. If modifications were made, the method checks if the new
+ * HTTP request produced is valid or not.
+ *
+ * If this task is executed succesfully, the next task to be executed will be
+ * CONNECT_TO_WEBSITE if the last_read variable is CLIENT and SEND_TO_CLIENT if
+ * the last_read variable is WEBSITE.
+ *
+ * Important: If the request edits made by the user result in a INVALID HTTP
+ * request, the user is notified by an error log message, the ORIGINAL request
+ * is restored and the next task to be executed is AWAIT_GATE, taking the user
+ * back to the request gate.
+ *
+ */
 
 int Server::update_requests(connection *client, connection *website){
 
@@ -448,22 +748,6 @@ int Server::update_requests(connection *client, connection *website){
             logger.error("Invalid client request entered! Try again!");
             next_task = AWAIT_GATE;
         }
-
-//        // If the new request is valid, overwrite the buffer:
-//        if (parser.validRequestHeader(new_client_data)) {
-//          emit newHost(parser.getHost());
-//          body_size = original_size - original_header.size();
-//          replace_header(new_client_header, &(client->buffer), body_size);
-//          next_task = CONNECT_TO_WEBSITE;
-//          logger.info("Edited client request!");
-//        }
-
-//        // Else, go back to the gate with the old request:
-//        else {
-//          emit clientData(QByteArray(client->buffer.content, client->buffer.size));
-//          logger.error("Invalid client request entered! Try again!");
-//          next_task = AWAIT_GATE;
-//        }
 
       }
 
@@ -515,17 +799,51 @@ int Server::update_requests(connection *client, connection *website){
 
 }
 
+/**
+ * @fn Server::config_client_addr(struct sockaddr_in *client_addr)
+ * @brief Method to configure the client socket address information.
+ * @param client_addr Address of a struct to hold the information.
+ *
+ * This method configures the information used to connect to the client socket.
+ * The information is saved in the struct pointer client_addr.
+ *
+ */
+
 void Server::config_client_addr(struct sockaddr_in *client_addr) {
   client_addr->sin_family = AF_INET;           // IPv4.
   client_addr->sin_addr.s_addr = INADDR_ANY;   // Accept all connections.
   client_addr->sin_port = htons(port_number);  // Port number for proxy.
 }
 
+/**
+ * @fn void Server::config_website_addr(struct sockaddr_in *website_addr)
+ * @brief Method to configure the website socket address information.
+ * @param website_addr Address of a struct to hold the information.
+ *
+ * This method configures the information used to connect to the website
+ * socket. The information is saved in the struct pointer website_addr.
+ *
+ */
+
 void Server::config_website_addr(struct sockaddr_in *website_addr) {
   memset(website_addr, 0, sizeof(*website_addr));
   website_addr->sin_family = AF_INET;  // IPv4.
   website_addr->sin_port = htons(80);  // Port number for website (HTTP).
 }
+
+/**
+ * @fn void Server::handle_error(ServerTask task, int client_fd, int
+ * website_fd)
+ * @brief Method to handle errors associated with a Server task.
+ * @param task Server task that cause an error.
+ * @param client_fd File descriptor for the client socket connection.
+ * @param website_fd File descriptor for the website socket connection.
+ *
+ * This method is used to take the necessary actions when a task performed by
+ * the Server run method causes an error. Sometimes, no actions need to be
+ * taken!
+ *
+ */
 
 void Server::handle_error(ServerTask task, int client_fd, int website_fd) {
 
@@ -557,30 +875,20 @@ void Server::handle_error(ServerTask task, int client_fd, int website_fd) {
 
 }
 
-void Server::replace_header(QString new_header, request *req, ssize_t body_size) {
-  char aux[HTTP_BUFFER_SIZE], *header_end;
-  ssize_t new_size;
-
-  // Find the new request size:
-  new_size = new_header.size() + body_size;
-
-  // Copy the new header:
-  strcpy(aux, new_header.toStdString().c_str());
-
-  // Find the end of the old header (the body beginning):
-  header_end = strstr(req->content, "\r\n\r\n");
-  header_end += 4;
-
-  // Copy the old body:
-  memcpy(aux + new_header.size(), header_end, static_cast <size_t> (body_size));
-
-  // Copy the aux buffer to the request:
-  memcpy(req->content, aux, static_cast<size_t> (new_size));
-
-  // Update the size:
-  req->size = new_size;
-
-}
+/**
+ * @fn void Server::replace_buffer(request *req, QByteArray new_data)
+ * @brief Method to replace the content and size of a request data type.
+ * @param req Address of the request whose content and size will be replaced.
+ * @param new_data Data to be written to the request.
+ *
+ * This method replaces the content of a request specified by the address req
+ * with the data provided by new_data. It also changes the size specified in
+ * req to that of the data in new_data.
+ *
+ * Warning: The old content and size of the request specified by the address
+ * req will be OVERWRITTEN.
+ *
+ */
 
 void Server::replace_buffer(request *req, QByteArray new_data){
     size_t size = static_cast<size_t> (new_data.size());
@@ -592,11 +900,31 @@ void Server::replace_buffer(request *req, QByteArray new_data){
     req->size = new_data.size();
 }
 
+/**
+ * @fn void Server::set_gate_closed(bool value)
+ * @brief Method to set the value of the gate_closed control variable.
+ * @param value Value to be assigned to the gate_closed control variable.
+ *
+ * This method sets the value of the gate_closed control variable using the
+ * QMutex gate_mutex.
+ *
+ */
+
 void Server::set_gate_closed(bool value) {
   gate_mutex.lock();
   gate_closed = value;
   gate_mutex.unlock();
 }
+
+/**
+ * @fn void Server::set_running(bool value)
+ * @brief Method to set the value of the 'running' control variable.
+ * @param value Value to be assigned to the 'running' control variable.
+ *
+ * This method sets the value of the 'running' control variable using the
+ * QMutex run_mutex.
+ *
+ */
 
 void Server::set_running(bool value) {
   run_mutex.lock();
