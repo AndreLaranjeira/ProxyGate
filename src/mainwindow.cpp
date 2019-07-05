@@ -5,6 +5,16 @@
 #include "ui_mainwindow.h"
 
 // Class methods:
+/**
+ * @fn MainWindow::MainWindow(QWidget *parent)
+ * @brief MainWindow constructor for MainWindow class
+ * @param parent A QT parent widget
+ *
+ * This constructor creates main window logger, instanciates Ui class,
+ * creates some qhexedit textboxes that can't be created statically and
+ * configures server and tools
+ *
+ */
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),
                                           ui(new Ui::MainWindow),
                                           logger("Main window") {
@@ -34,6 +44,14 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),
 
 }
 
+/**
+ * @fn MainWindow::~MainWindow()
+ * @brief MainWindow destructor for MainWindow class
+ *
+ * Deallocates qhexedits and Ui, cleans up server thread and
+ * schedule server thread to stop
+ *
+ */
 MainWindow::~MainWindow() {
 
   // Clean up qhexedits
@@ -186,6 +204,16 @@ void MainWindow::config_tools_thread() {
 }
 
 // Private slots:
+
+/**
+ * @fn void MainWindow::on_button_gate_clicked()
+ * @brief This function is executed when button_gate is clicked
+ *
+ * When button gate is clicked it sends to server the requests and replies
+ * stored on textboxes and qhexedits. After that it sets open gate internal server
+ * flag with a call to server->open_gate()
+ *
+ */
 void MainWindow::on_button_gate_clicked() {
     // !TODO: Fix to add headers
   server->load_client_request(ui->request_headers->toPlainText(), text_client->data());
@@ -193,30 +221,73 @@ void MainWindow::on_button_gate_clicked() {
   server->open_gate();
 }
 
+/**
+ * @fn void MainWindow::on_spider_push_clicked()
+ * @brief This function is executed when spider button is clicked
+ *
+ * Send a signal to SpiderDumper class with host to get links from and
+ * build spider tree
+ *
+ */
 void MainWindow::on_spider_push_clicked() {
   emit start_spider(ui->spider_host->text());
 }
 
+/**
+ * @fn void MainWindow::on_dumper_push_clicked()
+ * @brief This function is executed when dumper button is clicked
+ *
+ * Pops up a file dialog, that will tell where to save dumped files.
+ * After that it emits a signal to SpiderDumer with host and selected
+ * directory asking to begin dump process.
+ *
+ */
 void MainWindow::on_dumper_push_clicked() {
   QString dir = QFileDialog::getExistingDirectory(this, tr("Escolha uma pasta"), ".", QFileDialog::ShowDirsOnly);
   emit start_dumper(ui->spider_host->text(), dir);
 }
 
+/**
+ * @fn void MainWindow::setClientData(QString headers, QByteArray data)
+ * @brief This is a slot that updates textbox with header data and
+ * qhexedit with body data on client side.
+ * @param headers QString with headers to be inserted on client textbox
+ * @param data Raw data to be inserted on client qhexedit
+ *
+ */
 void MainWindow::setClientData(QString headers, QByteArray data){
     text_client->setData(data);
     ui->request_headers->setText(headers);
 }
 
+
+/**
+ * @fn void MainWindow::setWebsiteData(QString headers, QByteArray data)
+ * @brief This is a slot that updates textbox with header data and
+ * qhexedit with body data on website side.
+ * @param headers QString with headers to be inserted on website textbox
+ * @param data Raw data to be inserted on website qhexedit
+ *
+ */
 void MainWindow::setWebsiteData(QString headers, QByteArray data){
     text_website->setData(data);
     ui->reply_headers->setText(headers);
 }
 
+
+/**
+ * @fn void MainWindow::clearClientData()
+ * @brief This is a slot that clears content from header textbox and qhexedit on client side *
+ */
 void MainWindow::clearClientData(){
     text_client->setData(QByteArray());
     ui->request_headers->clear();
 }
 
+/**
+ * @fn void MainWindow::clearWebsiteData()
+ * @brief This is a slot that clears content from header textbox and qhexedit on website side *
+ */
 void MainWindow::clearWebsiteData(){
     text_website->setData(QByteArray());
     ui->reply_headers->clear();
