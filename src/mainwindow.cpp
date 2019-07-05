@@ -71,6 +71,18 @@ MainWindow::~MainWindow() {
 }
 
 // Public methods:
+
+/**
+ * @fn int MainWindow::start_server()
+ * @brief Starts the server thread.
+ * @return Returns 0 when the successfully executed and -1 if an error occurs.
+ *
+ * This method starts the server thread and the Server functionalities of the
+ * application. If successful, a new thread is created with a Server class
+ * running in it.
+ *
+ */
+
 int MainWindow::start_server() {
 
   // Initialize classes:
@@ -96,6 +108,17 @@ int MainWindow::start_server() {
 
 }
 
+/**
+ * @fn void MainWindow::start_tools()
+ * @brief Starts the tools thread.
+ * @return Returns 0 when the successfully executed.
+ *
+ * This method starts the tools thread and the SpiderDump functionalities of
+ * the application. If successful, a new thread is created with a SpiderDumper
+ * class running in it.
+ *
+ */
+
 void MainWindow::start_tools() {
 
   // Initialize classes:
@@ -112,6 +135,19 @@ void MainWindow::start_tools() {
 }
 
 // Private methods:
+
+/**
+ * @fn in_port_t MainWindow::server_port()
+ * @brief Method to determine the Server class port number.
+ * @returns Returns the port number used by the Server class.
+ *
+ * This method receives the program arguments and uses it to determine the port
+ * number used by the Server class. If the user provided a valid port number as
+ * a program argument, it is used by the Server. Else, we use the default port
+ * number specified in the Server module.
+ *
+ */
+
 in_port_t MainWindow::server_port() {
 
   const QStringList args = QCoreApplication::arguments();
@@ -141,6 +177,15 @@ in_port_t MainWindow::server_port() {
   return port_num;
 
 }
+
+/**
+ * @fn void MainWindow::config_server_thread()
+ * @brief Method to configure the server thread signals and slots.
+ *
+ * This method configures the server thread connections using the Qt signals
+ * and slots system.
+ *
+ */
 
 void MainWindow::config_server_thread() {
 
@@ -175,6 +220,15 @@ void MainWindow::config_server_thread() {
   connect(server_t, SIGNAL (finished()), server_t, SLOT (deleteLater()));
 
 }
+
+/**
+ * @fn void MainWindow::config_server_thread()
+ * @brief Method to configure the tools thread signals and slots.
+ *
+ * This method configures the tools thread connections using the Qt signals
+ * and slots system.
+ *
+ */
 
 void MainWindow::config_tools_thread() {
 
