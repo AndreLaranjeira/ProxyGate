@@ -90,7 +90,7 @@ class MessageLogger : public QObject {
     void success(string);
     void warning(string);
 
-    signals:
+  signals:
     void sendMessage(QString);  /**< Signal to send a log message. */
 
   private:
