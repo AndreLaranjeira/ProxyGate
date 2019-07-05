@@ -222,7 +222,7 @@ void MainWindow::config_server_thread() {
 }
 
 /**
- * @fn void MainWindow::config_server_thread()
+ * @fn void MainWindow::config_tools_thread()
  * @brief Method to configure the tools thread signals and slots.
  *
  * This method configures the tools thread connections using the Qt signals
