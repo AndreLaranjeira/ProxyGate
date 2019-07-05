@@ -1,6 +1,21 @@
+/**
+ * @file httpparser.cpp
+ * @brief HTTP parser - Source code.
+ *
+ * Implementation of all private and public method of HTTPParser class
+ */
+
+
 #include "include/httpparser.h"
 
-// Parser initializer
+/**
+ * @fn HTTPParser::HTTPParser()
+ * @brief HTTPParser constructor
+ *
+ * Creates HTTP parser object setting initial state to COMMANDLINE and
+ * connecting its logger to mainwindow
+ *
+ */
 HTTPParser::HTTPParser() : state(COMMANDLINE), logger("HTTPParser"){
   // Connect message logger:
   connect(&logger, SIGNAL (sendMessage(QString)), this, SIGNAL (logMessage(QString)));
@@ -10,7 +25,13 @@ HTTPParser::~HTTPParser() {
 
 }
 
-// Gets raw request and returns HeaderBodyPair which splits header part (text) from body (can be binary)
+/**
+ * @fn HeaderBodyPair HTTPParser::splitRequest(char *request, size_t size)
+ * @brief Splits header section from body section given an array of chars and its size
+ * @param request Array of chars to be splitted
+ * @param size Size of array of chars
+ * @return Returns HeaderBodyPair struct with each field sets *
+ */
 HeaderBodyPair HTTPParser::splitRequest(char *request, size_t size){
     HeaderBodyPair ret;
     unsigned int headerEnd;
@@ -36,10 +57,13 @@ HeaderBodyPair HTTPParser::splitRequest(char *request, size_t size){
 
 }
 
-// Private method that receives a request and parses it
-// Returns true if no error occoured and false if
-// something went wrong
-
+/**
+ * @fn bool HTTPParser::parse(char *request, ssize_t size)
+ * @brief Private method that receives a request and parses it
+ * @param request Array of chars to be parsed
+ * @param size Size of array of chars
+ * @return Returns true if no error occoured and false if not
+ */
 bool HTTPParser::parse(char *request, ssize_t size){
     QList<QString> lines;
 
@@ -89,6 +113,15 @@ bool HTTPParser::parse(char *request, ssize_t size){
     return true;
 }
 
+/**
+ * @fn bool HTTPParser::validAnswerHeader(QString header)
+ * @brief Verifies if an answer header string is valid
+ * @param header QString containing the header
+ * @return Returns true if valid, false if not
+ *
+ * A valid header is a header that ends with "\r\n\r\n", first
+ * line is an answer line and the other lines are header lines
+ */
 bool HTTPParser::validAnswerHeader(QString header){
 
   QList<QString> lines;
@@ -116,6 +149,15 @@ bool HTTPParser::validAnswerHeader(QString header){
 
 }
 
+/**
+ * @fn bool HTTPParser::validRequestHeader(QString header)
+ * @brief Verifies if an request header string is valid
+ * @param header QString containing the header
+ * @return Returns true if valid, false if not
+ *
+ * A valid header is a header that ends with "\r\n\r\n", first
+ * line is an request line and the other lines are header lines
+ */
 bool HTTPParser::validRequestHeader(QString header) {
 
     QList<QString> lines;
@@ -143,6 +185,15 @@ bool HTTPParser::validRequestHeader(QString header) {
     return true;
 }
 
+/**
+ * @fn bool HTTPParser::parseCommandLine(QString line, QString *method, QString *url, QString *version)
+ * @brief Given a line try to parse a command line
+ * @param line The line to be parsed
+ * @return Returns true if parsed ok
+ * @return method by reference
+ * @return url by reference
+ * @return version by reference
+ */
 bool HTTPParser::parseCommandLine(QString line, QString *method, QString *url, QString *version){
     int pos;
 
@@ -168,14 +219,26 @@ bool HTTPParser::parseCommandLine(QString line, QString *method, QString *url, Q
     return true;
 }
 
-// This method parsers first line of a HTTP request
-// It alters private members of class
-// Returns false if could not match with expected expression
+/**
+ * @fn bool HTTPParser::parseCL(QString line)
+ * @brief This method parsers first line of a HTTP request, it alters private members of class
+ * @param line The line to be parsed
+ * @return Returns false if could not match with expected expression
+ */
 bool HTTPParser::parseCL(QString line){
     // Parse command line and set private variables
     return parseCommandLine(line, &this->method, &this->url, &this->version);
 }
 
+/**
+ * @fn bool HTTPParser::parseAnswerLine(QString line, QString *version, QString *code, QString *description)
+ * @brief Given a line try to parse a answer line
+ * @param line The line to be parsed
+ * @return Returns true if parsed ok
+ * @return version by reference
+ * @return code by reference
+ * @return description by reference
+ */
 bool HTTPParser::parseAnswerLine(QString line, QString *version, QString *code, QString *description){
     int pos;
 
@@ -202,17 +265,25 @@ bool HTTPParser::parseAnswerLine(QString line, QString *version, QString *code, 
     return true;
 }
 
-// This method parsers first line of a HTTP request
-// It alters private members of class
-// Returns false if could not match with expected expression
+/**
+ * @fn bool HTTPParser::parseAL(QString line)
+ * @brief This method parsers first line of a HTTP request, it alters private members of class
+ * @param line The line to be parsed
+ * @return Returns false if could not match with expected expression, true if could
+ */
 bool HTTPParser::parseAL(QString line){
     // Parsers answer line and set private variables
     return parseAnswerLine(line, &this->version, &this->code, &this->description);
 }
 
-// This method parsers a header line of a HTTP request
-// Returns false if could not match with expected expression
-// Returns by reference name and value of a header
+/**
+ * @fn bool HTTPParser::parseHeaderLine(QString line, QString *name, QString *value)
+ * @brief This method parsers a header line of a HTTP request
+ * @param line The line to be parsed
+ * @return Returns false if could not match with expected expression
+ * @return name key of header line by reference
+ * @return value of header line by reference
+ */
 bool HTTPParser::parseHeaderLine(QString line, QString *name, QString *value){
     int pos;
 
@@ -232,9 +303,12 @@ bool HTTPParser::parseHeaderLine(QString line, QString *name, QString *value){
     return true;
 }
 
-// This method parsers a header line of a HTTP request
-// It alters private members of class
-// Returns false if could not match with expected expression
+/**
+ * @fn bool HTTPParser::parseHL(QString line)
+ * @brief This method parsers a header line of a HTTP request, it alters private members of class
+ * @param line The line to be parsed
+ * @return Returns false if could not match with expected expression
+ */
 bool HTTPParser::parseHL(QString line){
     QString name, value;
 
@@ -255,64 +329,112 @@ bool HTTPParser::parseHL(QString line){
     return true;
 }
 
-// Getter for method
+/**
+ * @fn QString HTTPParser::getMethod()
+ * @brief Getter for http method
+ * @return Returns QString containing method
+ */
 QString HTTPParser::getMethod(){
     return this->method;
 }
 
-// Getter for host
+/**
+ * @fn QString HTTPParser::getHost()
+ * @brief Getter for http host
+ * @return Returns QString containing host
+ */
 QString HTTPParser::getHost(){
     if(this->headers.contains("Host"))
         return this->getHeaders()["Host"][0];
     else return "";
 }
 
-// Getter for url
+/**
+ * @fn QString HTTPParser::getURL()
+ * @brief Getter for http url
+ * @return Returns QString containing url
+ */
 QString HTTPParser::getURL(){
     return this->url;
 }
 
-// Getter for version
+/**
+ * @fn QString HTTPParser::getHTTPVersion()
+ * @brief Getter for http version
+ * @return Returns QString containing version
+ */
 QString HTTPParser::getHTTPVersion(){
     return this->version;
 }
 
-// Getter for code
+/**
+ * @fn QString HTTPParser::getCode()
+ * @brief Getter for http code
+ * @return Returns QString containing code
+ */
 QString HTTPParser::getCode(){
     return this->code;
 }
 
-// Getter for description
+/**
+ * @fn QString HTTPParser::getDescription()
+ * @brief Getter for http description
+ * @return Returns QString containing description
+ */
 QString HTTPParser::getDescription(){
     return this->description;
 }
 
-// Getter for data
+/**
+ * @fn QString HTTPParser::getData()
+ * @brief Getter for http data section
+ * @return Returns char array containing raw data
+ */
 char *HTTPParser::getData(){
     return this->splitted.body;
 }
 
-// Getter for data
+/**
+ * @fn QString HTTPParser::getDataSize()
+ * @return Returns size of data section
+ */
 size_t HTTPParser::getDataSize(){
     return this->splitted.body_size;
 }
 
-// Getter for headers
+/**
+ * @fn QString HTTPParser::getHeaders()
+ * @brief Getter for headers
+ * @return Returns headers hashmap
+ */
 Headers HTTPParser::getHeaders(){
     return this->headers;
 }
 
-// Getter for headers
+/**
+ * @fn QString HTTPParser::getHeadersSize()
+ * @return Returns number header size in bytes
+ */
 int HTTPParser::getHeadersSize(){
     return this->splitted.header.size();
 }
 
-// Public method that parsers a request
+/**
+ * @fn bool HTTPParser::parseRequest(char *request, ssize_t size)
+ * @brief Public method that parsers a request
+ * @param request array of chars with request to be parsed
+ * @param size size of array of chars with request
+ * @return Returns true if parsed ok, false otherwise
+ */
 bool HTTPParser::parseRequest(char *request, ssize_t size){
     return this->parse(request, size);
 }
 
-// Shows in screen beautified the parsed HTTP request
+
+/**
+* @fn void HTTPParser::prettyPrinter()
+* @brief Shows in stdout beautified the parsed HTTP request
+*/
 void HTTPParser::prettyPrinter(){
     QHashIterator<QString,QList<QString>> i(this->getHeaders());
     while(i.hasNext()){
@@ -334,6 +456,10 @@ void HTTPParser::prettyPrinter(){
     cout << endl;
 }
 
+/**
+* @fn QString HTTPParser::answerHeaderToQString()
+* @return Returns as a QString the header with answer line
+*/
 QString HTTPParser::answerHeaderToQString() {
   QString ret;
 
@@ -345,7 +471,11 @@ QString HTTPParser::answerHeaderToQString() {
 
 }
 
-// Converts header of HTTPParser object into a QString
+/**
+* @fn QString HTTPParser::headerFieldsToQString()
+* @brief Converts header of HTTPParser object into a QString
+* @return Returns as a QString the header lines
+*/
 QString HTTPParser::headerFieldsToQString(){
     QString ret;
     QHashIterator<QString,QList<QString>> i(this->getHeaders());
@@ -364,6 +494,10 @@ QString HTTPParser::headerFieldsToQString(){
     return ret;
 }
 
+/**
+* @fn QString HTTPParser::requestHeaderToQString()
+* @return Returns as a QString the header with request line
+*/
 QString HTTPParser::requestHeaderToQString() {
   QString ret;
 
@@ -375,6 +509,10 @@ QString HTTPParser::requestHeaderToQString() {
 
 }
 
+/**
+* @fn QByteArray HTTPParser::requestBuffer()
+* @return raw request buffer as QByteArray
+*/
 QByteArray HTTPParser::requestBuffer(){
     QByteArray ret;
     ret.append(this->requestHeaderToQString());
@@ -382,7 +520,10 @@ QByteArray HTTPParser::requestBuffer(){
     return ret;
 }
 
-
+/**
+* @fn QByteArray HTTPParser::answerBuffer()
+* @return raw answer buffer as QByteArray
+*/
 QByteArray HTTPParser::answerBuffer(){
     QByteArray ret;
     ret.append(this->answerHeaderToQString());
@@ -390,6 +531,10 @@ QByteArray HTTPParser::answerBuffer(){
     return ret;
 }
 
+/**
+* @fn void HTTPParser::updateContentLength()
+* @brief Recomputes content-length based on body size
+*/
 void HTTPParser::updateContentLength(){
     if(this->headers.contains("Content-Length")){
         this->headers["Content-Length"][0] = QString::fromStdString(std::to_string(this->splitted.body_size));

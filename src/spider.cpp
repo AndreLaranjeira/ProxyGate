@@ -1,10 +1,35 @@
+/**
+ * @file spider.cpp
+ * @brief Spider and Dumper - Source code.
+ *
+ * Implementation of all private and public method of SpiderDumper
+ * class and SpiderTree class
+ */
+
 #include "include/spider.h"
+
+// Function implementations:
+
+/**
+ * @fn SpiderDumper::SpiderDumper()
+ * @brief SpiderDumper constructor
+ *
+ * Instanciates and connects its logger to mainwindow
+ */
 
 SpiderDumper::SpiderDumper() : logger("SpiderDumper"){
     connect(&logger, SIGNAL (sendMessage(QString)), this,
             SIGNAL (updateLog(QString)));
 }
 
+/**
+ * @fn void SpiderDumper::spider(QString link)
+ * @brief Start spider tool
+ * @param link Link to webpage to be root of spider
+ *
+ * This method creates a spider tree for the link given and emit
+ * a signal to pretty print it on mainwindow
+ */
 void SpiderDumper::spider(QString link){
     QString request;
 
@@ -18,6 +43,16 @@ void SpiderDumper::spider(QString link){
 
 }
 
+/**
+ * @fn void SpiderDumper::dumper(QString link, QString dir)
+ * @brief Start dumper tool
+ * @param link Link to webpage to be root of dumper
+ * @param dir Directory to save dump files
+ *
+ * This method creates a spider tree for the link given and saves each
+ * file content in the tree, after that it fixes references and save each
+ * file to dir folder
+ */
 void SpiderDumper::dumper(QString link, QString dir){
     QStringList links;
 
@@ -31,17 +66,38 @@ void SpiderDumper::dumper(QString link, QString dir){
 
 }
 
+/**
+ * @fn SpiderTree::SpiderTree(QString link) : link(link)
+ * @brief Constructor for SpiderTree
+ * @param link The link of node
+ */
 SpiderTree::SpiderTree(QString link) : link(link){
 }
 
+/**
+ * @fn void SpiderTree::appendNode(SpiderTree node)
+ * @brief Append a node as child
+ * @param node The node to be appended
+ */
 void SpiderTree::appendNode(SpiderTree node){
     this->nodes.push_back(node);
 }
 
+/**
+ * @fn QString SpiderTree::prettyPrint()
+ * @brief Pretty print spider tree
+ * @return Returns a QString with pretty printed spider tree
+ */
 QString SpiderTree::prettyPrint(){
     return this->pp(0);
 }
 
+/**
+ * @fn QString SpiderTree::pp(unsigned int level)
+ * @brief Pretty print spider tree
+ * @param level The actual level of print, used for tabulations
+ * @return Returns a QString with pretty printed spider tree
+ */
 QString SpiderTree::pp(unsigned int level){
     QString str;
     if(level == 0) str += "LINK: " + this->link + "\n";
@@ -54,42 +110,99 @@ QString SpiderTree::pp(unsigned int level){
     return str;
 }
 
+/**
+ * @fn QByteArray SpiderTree::getData()
+ * @brief Method that returns node's raw data
+ * @return Returns raw data of node
+ */
 QByteArray SpiderTree::getData(){
     return this->data;
 }
 
+/**
+ * @fn void SpiderTree::setData(QByteArray data)
+ * @brief Set new data to node
+ * @param data New data byte array
+ */
 void SpiderTree::setData(QByteArray data){
     this->data = data;
 }
 
+/**
+ * @fn QString SpiderTree::getContentType()
+ * @brief Method that returns node's raw data content type
+ * @return Returns content type of node
+ */
 QString SpiderTree::getContentType(){
     return this->contentType;
 }
 
+/**
+ * @fn void SpiderTree::setContentType(QString contentType)
+ * @brief Method that sets node's raw data content type
+ * @param contentType new content type to be set
+ */
 void SpiderTree::setContentType(QString contentType){
     this->contentType= contentType;
 }
 
+/**
+ * @fn QString SpiderDumper::removeSquare(QString link)
+ * @brief Removes '#' character from URL
+ * @param link Link to remove character
+ * @return Returns link with removed '#'
+ */
 QString SpiderDumper::removeSquare(QString link){
     return link.split("#")[0];
 }
 
+/**
+ * @fn QString SpiderDumper::removeWWW(QString link)
+ * @brief Removes 'www' string from URL
+ * @param link Link to remove string
+ * @return Returns link with removed 'www'
+ */
 QString SpiderDumper::removeWWW(QString link){
     return link.indexOf("www.") == 0 ? link.split("^www.")[0] : link;
 }
 
+/**
+ * @fn bool SpiderDumper::sameHost(QString host, QString absoluteLink)
+ * @brief Verifies if link belongs to same host
+ * @param host The host to be compared
+ * @param absoluteLink the link to verify if belongs to host
+ * @return true if belongs, false if not
+ */
 bool SpiderDumper::sameHost(QString host, QString absoluteLink){
     return removeWWW(host) == getHost(removeWWW(absoluteLink));
 }
 
+/**
+ * @fn list<SpiderTree> *SpiderTree::getNodes()
+ * @brief Get all children nodes
+ * @return List of nodes
+ */
 list<SpiderTree> *SpiderTree::getNodes(){
     return &(this->nodes);
 }
 
+/**
+ * @fn QString SpiderTree::getLink()
+ * @brief Get node link
+ * @return QString with node link
+ */
 QString SpiderTree::getLink(){
     return this->link;
 }
 
+/**
+ * @fn SpiderTree SpiderDumper::buildSpiderTree(QString link, bool dump)
+ * @brief Method that creates spider tree given a link
+ * @param link The link to be the root node
+ * @param dump If true, saves each downloaded content in node and search for
+ * other files rather than only links. If not don't save and only search for links
+ * @return SpiderTree with SPIDER_TREE_DEPTH level of depth
+ */
 SpiderTree SpiderDumper::buildSpiderTree(QString link, bool dump){
     SpiderTree tree(getHost(link));
     QStringList links;
@@ -100,6 +213,17 @@ SpiderTree SpiderDumper::buildSpiderTree(QString link, bool dump){
     return tree;
 }
 
+/**
+ * @fn SpiderDumper::buildSpiderTreeRecursive(SpiderTree *tree, QString link, QString host, int depth, QStringList *globalLinks, bool dump)
+ * @brief Recursive case for buildSpiderTree
+ * @param tree Parent node to append new children
+ * @param link The link of parent node
+ * @param host The host to search for links and files
+ * @param depth Build depth counter, if 0 than stop
+ * @param globalLinks list of all links that have already been visited
+ * @param dump Dump flag that enables saving raw data into node and search for more references rather than only hyperlinks
+ * @return Answer from server for passed link
+ */
 QByteArray SpiderDumper::buildSpiderTreeRecursive(SpiderTree *tree, QString link, QString host, int depth, QStringList *globalLinks, bool dump){
     QByteArray request;
     QStringList links;
@@ -147,17 +271,36 @@ QByteArray SpiderDumper::buildSpiderTreeRecursive(SpiderTree *tree, QString link
 
 }
 
+/**
+ * @fn QString SpiderDumper::getFileName(QString rawpath)
+ * @brief Given a path to file get only file name
+ * @param rawpath Path to file
+ * @return File name
+ */
 QString SpiderDumper::getFileName(QString rawpath){
     // Split folder from filename
     size_t index = rawpath.toStdString().find_last_of("/");
     return QString::fromStdString(rawpath.toStdString().substr(index+1));
 }
 
+/**
+ * @fn SpiderDumper::getFolderName(QString rawpath)
+ * @brief Given a path to file get only folder name
+ * @param rawpath Path to file
+ * @return Folder to file
+ */
 QString SpiderDumper::getFolderName(QString rawpath){
     size_t index = rawpath.toStdString().find_last_of("/");
     return QString::fromStdString(rawpath.toStdString().substr(0,index+1));
 }
 
+
+/**
+ * @fn QString SpiderDumper::getFileExtension(QString rawpath)
+ * @brief Given a path to file get file extension
+ * @param rawpath Path to file
+ * @return File extension
+ */
 QString SpiderDumper::getFileExtension(QString rawpath){
     // Find for last .
     size_t index = rawpath.toStdString().find_last_of(".");
@@ -169,10 +312,23 @@ QString SpiderDumper::getFileExtension(QString rawpath){
     return QString::fromStdString(rawpath.toStdString().substr(index+1));
 }
 
+/**
+ * @fn void SpiderDumper::dump(SpiderTree tree, QString dir)
+ * @brief Method that starts dump process
+ * @param tree A tree with raw data to dump and fix references
+ * @param dir Directory to save dumped files
+ */
 void SpiderDumper::dump(SpiderTree tree, QString dir){
     dumpRecursive(tree, dir);
 }
 
+/**
+ * @fn SpiderDumper::saveToFile(QString folder, QString filename, QByteArray content)
+ * @brief Method that saves a content to file
+ * @param folder Folder to save file
+ * @param filename Name of file to be saved
+ * @param content Content of file
+ */
 void SpiderDumper::saveToFile(QString folder, QString filename, QByteArray content){
 
     // Do not create empty files
@@ -198,6 +354,12 @@ void SpiderDumper::saveToFile(QString folder, QString filename, QByteArray conte
     file.close();
 }
 
+/**
+ * @fn SpiderDumper::dumpRecursive(SpiderTree node, QString dirPath)
+ * @brief Recursive case for dump method, saves and fix references to links
+ * @param node subtree to be dumped
+ * @param dirPath path to save subtree files
+ */
 void SpiderDumper::dumpRecursive(SpiderTree node, QString dirPath){
     QString absoluteLink = getAbsoluteLink(node.getLink(), getHost(node.getLink()));
     QString request_replaced;
@@ -244,6 +406,16 @@ void SpiderDumper::dumpRecursive(SpiderTree node, QString dirPath){
     return;
 }
 
+/**
+ * @fn SpiderDumper::getAbsoluteLink(QString link, QString host)
+ * @brief Format link
+ * @param link Link to be formated
+ * @param host Host to append if none
+ * @return formated link
+ *
+ * Given a link remove http:// prefix, and try to add host as prefix if
+ * it is not there. This method removes squares from links too
+ */
 QString SpiderDumper::getAbsoluteLink(QString link, QString host){
     QRegExp re("^http(?:s)?://(.*)");
     QString ret;
@@ -256,6 +428,12 @@ QString SpiderDumper::getAbsoluteLink(QString link, QString host){
     return removeSquare(ret);
 }
 
+/**
+ * @fn QString SpiderDumper::getURL(QString link)
+ * @brief Get URL from link
+ * @param link Link to get URL
+ * @return URL of link
+ */
 QString SpiderDumper::getURL(QString link){
     QRegularExpression re("(?:https?://)?(?:[^/]*)/*(.*)");
     QRegularExpressionMatch match = re.match(link);
@@ -263,6 +441,16 @@ QString SpiderDumper::getURL(QString link){
     else return link;
 }
 
+/**
+ * @fn QString SpiderDumper::getURL_relative(QString link, QString url)
+ * @brief Get URL relative to another URL
+ * @param link Link to get relative url
+ * @param url URL referential
+ * @return Relative url of link
+ *
+ * Example if url is '/path/to/file.html' and link is '/path/other/file.html'
+ * it should return '../../../path/other/file.html'
+ */
 QString SpiderDumper::getURL_relative(QString link, QString url){
     QRegularExpression re("(?:https?://)?.*?(?=\\.\\.|/)/*(.*)");
     QRegularExpressionMatch match = re.match(link);
@@ -283,6 +471,12 @@ QString SpiderDumper::getURL_relative(QString link, QString url){
     else return link;
 }
 
+/**
+ * @fn QString SpiderDumper::getHost(QString link)
+ * @brief Get host from link
+ * @param link Link to get host url
+ * @return Host as QString
+ */
 QString SpiderDumper::getHost(QString link){
     QRegularExpression re("(?:https?://)?([^/]*)/*(?:.*)");
     QRegularExpressionMatch match = re.match(link);
@@ -290,6 +484,12 @@ QString SpiderDumper::getHost(QString link){
     else return "";
 }
 
+/**
+ * @fn QStringList SpiderDumper::extract_links(QString request)
+ * @brief Extract links from raw data answer from website
+ * @param request raw data answer from website
+ * @return List of links as QStringList
+ */
 QStringList SpiderDumper::extract_links(QString request){
     QStringList links;
     QRegularExpression re("<a.+?(?=href)href\\s*=\\s*[\"|']([^\"']*)[\"'][^>]*>");
@@ -302,6 +502,14 @@ QStringList SpiderDumper::extract_links(QString request){
     return links;
 }
 
+/**
+ * @fn QStringList SpiderDumper::extract_references(QString request)
+ * @brief Extract references from raw data answer from website
+ * @param request raw data answer from website
+ * @return List of references as QStringList
+ *
+ * References include javascript files, css files, images.
+ */
 QStringList SpiderDumper::extract_references(QString request){
     QStringList links;
     QRegularExpression re("(?:href|src)\\s*=\\s*[\"|']([^\"']*)[\"']");
@@ -314,6 +522,12 @@ QStringList SpiderDumper::extract_references(QString request){
     return links;
 }
 
+/**
+ * @fn QString SpiderDumper::buildBackDir(int backs)
+ * @brief Given number of backs, return '../'xbacks
+ * @param backs Number that represents number of backs in path
+ * @return QString of '../'xbacks
+ */
 QString SpiderDumper::buildBackDir(int backs){
     QString ret;
     for(int i=0; i<backs ; i++)
@@ -321,6 +535,13 @@ QString SpiderDumper::buildBackDir(int backs){
     return ret;
 }
 
+/**
+ * @fn QString SpiderDumper::fix_references(QString request, QString url)
+ * @brief Fix references of website answer given reference url
+ * @param request Answer as QString
+ * @param url Url of document
+ * @return Return reference-fixed answer
+ */
 QString SpiderDumper::fix_references(QString request, QString url){
     QString ret = request;
     QRegularExpression re("(?:href|src)\\s*=\\s*[\"|']([^\"']*)[\"']");
@@ -344,6 +565,13 @@ QString SpiderDumper::fix_references(QString request, QString url){
     return ret;
 }
 
+/**
+ * @fn int SpiderDumper::con(QString host, int *website_fd)
+ * @brief Find IP address of host, creates socket and connects to website
+ * @param host Host to connect
+ * @return website_fd Socket file descriptor by reference
+ * @return Return -1 if some error occurred
+ */
 int SpiderDumper::con(QString host, int *website_fd){
     struct hostent *website_ip_data;
     struct sockaddr_in website_addr;
@@ -394,6 +622,14 @@ int SpiderDumper::con(QString host, int *website_fd){
     return 0;
 }
 
+/**
+ * @fn int SpiderDumper::get(QString link, QByteArray *ret, QString *contentType)
+ * @brief Given a link, sends a GET request to that link and returns its response by reference
+ * @param link Link to send GET request
+ * @return ret Array of bytes that will contain response (return by reference)
+ * @return contentType The content type of response
+ * @return Return -1 if some error occurred
+ */
 int SpiderDumper::get(QString link, QByteArray *ret, QString *contentType){
     size_t max_size = HTTP_BUFFER_SIZE;
     ssize_t single_read;
