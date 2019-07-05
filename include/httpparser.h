@@ -31,8 +31,8 @@
  * @brief Enum that describes allowed states for Parser
  */
 typedef enum {
-    COMMANDLINE,
-    HEADERLINE
+    COMMANDLINE, /**< Parser should parse first HTTP line. */
+    HEADERLINE /**< Parse should parse a header line. */
 } ParserState;
 
 /**
@@ -40,9 +40,9 @@ typedef enum {
  * @brief Internal HTTP Parser struct that splits headers section from body section
  */
 typedef struct HeaderBodyPair {
-    QString header;
-    char body[HTTP_BUFFER_SIZE+1];
-    size_t body_size;
+    QString header; /**< Header string */
+    char body[HTTP_BUFFER_SIZE+1]; /**< Raw body data. */
+    size_t body_size; /**< Raw body data size. */
 } HeaderBodyPair;
 
 /**
@@ -60,19 +60,19 @@ class HTTPParser : public QObject {
 
     private:
         // Private variables
-        QString method;
-        QString url;
-        QString version;
-        QString code;
-        QString description;
-        HeaderBodyPair splitted;
-        Headers headers;
+        QString method; /**< Stores HTTP method such as GET, POST, PUT, etc. */
+        QString url; /**< Stores HTTP url. */
+        QString version; /**< Stores HTTP version. */
+        QString code; /**< Stores response code. */
+        QString description; /**< Stores response description. */
+        HeaderBodyPair splitted; /**< Stores splitted pair: header,body. */
+        Headers headers; /**< Hashmap with keys as header name and value a list of header values. */
 
         // Parser state
-        ParserState state;
+        ParserState state; /**< Current parser state. */
 
         // Message logger
-        MessageLogger logger;
+        MessageLogger logger; /**< Parser logger. */
 
         // Private aux methods for parsing
         HeaderBodyPair splitRequest(char *, size_t);

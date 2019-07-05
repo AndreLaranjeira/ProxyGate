@@ -42,11 +42,11 @@
  */
 class SpiderTree {
     private:
-        list<SpiderTree> nodes;
-        QString link;
+        list<SpiderTree> nodes; /**< List of children nodes. */
+        QString link; /**< Link of node. */
         QString pp(unsigned int);
-        QByteArray data;
-        QString contentType;
+        QByteArray data; /**< Raw data of link read from website is stored here. */
+        QString contentType; /**< Stores content type of raw data. */
     public:
         SpiderTree(QString);
         void appendNode(SpiderTree);
@@ -72,7 +72,7 @@ class SpiderDumper : public QObject {
     Q_OBJECT
 
     private:
-    MessageLogger logger;
+    MessageLogger logger; /**< SpiderDumper logger. */
 
 
     int get(QString, QByteArray *, QString *);
