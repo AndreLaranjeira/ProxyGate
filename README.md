@@ -5,7 +5,7 @@
 Programa que implementa um portão proxy para requests entre um browser e o
 computador. Permite o controle da passagem de requests, a inspeção e edição de
 campos da request, a criação da árvore de referências do website autor da
-request e o download da estrutura html do site autor da request. Trabalho final
+request e o download da estrutura HTML do site autor da request. Trabalho final
 da disciplina Teleinformática e redes II 2019/1 da Universidade de Brasília.
 
 ## Integrantes
@@ -24,6 +24,7 @@ _Makefile_.
 um arquivo executável _ProxyGate_.
 
 ## Modo de uso
+
 1) Execute o comando `./ProxyGate [Número de porta]` para que o proxy seja
 inicializado.
 
